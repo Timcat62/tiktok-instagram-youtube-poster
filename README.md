@@ -36,9 +36,9 @@ Each platform requires you to create a free **"developer app"** under your name.
 
 | Platform | What works right away | What needs an approval |
 |---|---|---|
-| **YouTube** | Uploads work, but videos are **locked to private**. | Publishing **public** videos requires passing the free **YouTube API audit** ([form](https://support.google.com/youtube/contact/yt_api_form), step-by-step guide below). Expect a few days to several weeks. |
-| **Instagram** | **Everything**, as long as your Meta app stays in Development mode and you post to your own account. | Nothing for personal use. The login lasts **60 days**, then click "Reconnect". |
-| **TikTok** | **Draft mode** (the video lands in your TikTok inbox and you post it from the app). **Direct posting** works only with a **private** TikTok account, posted as "Only me". | Public direct posting requires the **TikTok app review + Content Posting API audit**. TikTok often rejects apps that look like personal tools, so draft mode is the realistic option for individuals. |
+| **YouTube** | **Everything** in most cases: public Shorts work as soon as your channel is connected. | Only if YouTube marks your uploads **"Private (locked)"**: then pass the free **YouTube API audit** (step E below). |
+| **Instagram** | **Everything**, as long as your Meta app stays in Development mode and you post to your own account. Videos are fetched through a temporary Cloudflare link (see [How it works](#how-it-works)). | Nothing for personal use. The login lasts **60 days**, then click "Reconnect". |
+| **TikTok** | **Draft mode** (the video lands in your TikTok inbox and you post it from the app). **Direct posting** works only with a **private** TikTok account, posted as "Only me". | Public direct posting requires the **TikTok app review + Content Posting API audit**: officially several days to two weeks, often 2 to 6 weeks in practice. TikTok often rejects apps that look like personal tools, so draft mode is the realistic option meanwhile. |
 
 Other rules:
 - **YouTube Shorts**: 3 minutes max. Longer videos are published as regular videos.
@@ -69,7 +69,7 @@ Values you will need below (keep this list handy):
 
 | What | Value |
 |---|---|
-| App name | `Social Poster` (any name **without** "YouTube", "Instagram", "Facebook" or "TikTok") |
+| App name | `Social Poster`, or `<your username> Social Poster` if the name is already taken (any name **without** "YouTube", "Instagram", "Facebook" or "TikTok") |
 | Website | `https://timcat62.github.io/tiktok-instagram-youtube-poster/` |
 | Privacy policy | `https://timcat62.github.io/tiktok-instagram-youtube-poster/privacy.html` |
 | Terms of service | `https://timcat62.github.io/tiktok-instagram-youtube-poster/terms.html` |
@@ -140,9 +140,11 @@ YouTube's audit and TikTok's app setup require a public **website**, a **privacy
     - The page says "YouTube connected!". Close it. The app shows **Connected · your channel name**.
 11. *(Optional)* For custom thumbnails, verify your channel by phone: <https://www.youtube.com/verify>.
 
-At this point, uploads work but **videos are locked to private**. To publish publicly, pass the audit below.
+That's it: you can publish public Shorts right away. In most cases, **you don't need step E**.
 
-#### E. YouTube API audit (to publish public videos)
+#### E. YouTube API audit (only if your videos are "Private (locked)")
+
+Skip this step unless YouTube Studio shows your uploads as **Private (locked)** (Google can apply this restriction to some unaudited projects), or you need more than the default quota.
 
 **Prepare these files first** (the form requires JPEG, PNG or PDF):
 
@@ -215,6 +217,7 @@ Submit. Google replies by email, sometimes with follow-up questions: answer them
 
 1. **Professional Instagram account**: Instagram app → your profile → menu ☰ → **Account type and tools** → **Switch to professional account** → choose **Creator** (or **Business**) → follow the steps.
 2. **Facebook Page**: if you don't have one, create it at <https://www.facebook.com/pages/create> (any name and category).
+   > Being in the same **Accounts Center** as your Facebook profile is **not** enough: the API finds your Instagram account *through a Facebook Page*, so the link below is required.
 3. **Link Instagram to the Page**: Instagram app → **Edit profile** → **Page** → **Connect or create** → log in to Facebook and choose your Page. Alternatively: on Facebook, open your Page → **Settings** → **Linked accounts** → **Instagram** → **Connect account**.
 
 #### B. Meta developer account
@@ -229,8 +232,8 @@ Submit. Google replies by email, sometimes with follow-up questions: answer them
       *(If your screen instead offers **Other**, choose it, then app type **Business**.)*
    3. **Business**: choose **I don't want to connect a business portfolio yet** → **Next**.
    4. **Requirements** / **Overview**: **Next** → **Go to dashboard**. Re-enter your Facebook password if asked.
-6. In the dashboard, left menu → **Use cases** → next to *Manage messaging & content on Instagram*, click **Customize**.
-7. Choose the **API setup with Facebook login** tab, **not** "Instagram login". This is the method that lets the app upload a video file straight from your computer.
+6. In the dashboard, left menu → **Use cases** → next to *Manage messaging & content on Instagram* (or *Instagram API*), click **Customize**.
+7. In the left sub-menu, choose **API setup with Facebook login** (French interface: *Configuration de l'API avec la connexion Facebook*, usually the **last** item; the names are truncated, hover them to read them), **not** "…with Instagram login". This is the method that lets the app upload a video file straight from your computer.
 8. In the permissions list, make sure these are added (click **Add** next to each one if needed):
    `instagram_basic`, `instagram_content_publish`, `pages_show_list`, `pages_read_engagement`, `business_management`.
    *(If you chose "Other → Business": left menu → **Add product** → add **Instagram** (API setup with Facebook login) and **Facebook Login for Business**.)*
@@ -256,10 +259,16 @@ Submit. Google replies by email, sometimes with follow-up questions: answer them
 13. Social Poster → **Accounts** → Instagram card → paste the **App ID** and **App Secret** → **Save**.
 14. Click **Connect with Facebook**. On the Facebook screens:
     - Continue as yourself.
-    - When asked which **Pages** to allow, select **your Page**.
+    - If Facebook recognizes you, click **Edit previous settings** instead of *Continue*.
+    - When asked which **Pages** to allow, select **your Page** (or *Opt in to all current and future Pages*).
     - When asked which **Instagram accounts** to allow, select **your Instagram account**.
     - Leave all permissions **on** → **Save** / **Got it**.
 15. The app shows **Connected · @your_instagram**. The connection lasts **60 days**; after that the status turns red: just click **Reconnect**.
+
+**"No professional Instagram account found"?** Check in the [Graph API Explorer](https://developers.facebook.com/tools/explorer/): select your app → *Get User Access Token* with the 5 permissions → run `me/accounts?fields=name,instagram_business_account{username}`.
+- Empty `data` → your Page wasn't allowed during login: reconnect with *Edit previous settings* and tick the Page.
+- Your Page without `instagram_business_account` → Instagram isn't linked to that Page (step 3).
+- Your Page with your username → everything is fine: use that token in Plan B below.
 
 #### G. Plan B: manual token
 
@@ -287,7 +296,7 @@ If step 14 fails (error "URL blocked", "invalid redirect"…):
 
 4. **Basic information**:
    - **App icon**: upload [`docs/icon.png`](docs/icon.png) (1024×1024)
-   - **App name**: `Social Poster`
+   - **App name**: `Social Poster`. If TikTok says *app name already taken*, add your username, e.g. `Timcat Social Poster`.
    - **Category**: pick the closest one available (for example a productivity/utility or video category)
    - **Description** (shown to users when they log in): `Publish your videos to TikTok, YouTube Shorts and Instagram Reels at once, with the same caption and cover.`
    - **Terms of Service URL**: the **Terms of service** URL
@@ -297,8 +306,8 @@ If step 14 fails (error "URL blocked", "invalid redirect"…):
 #### D. Verify your URLs (required for the Content Posting API)
 
 6. Click **URL properties** (at the top of the app page) → **Verify properties** → method **URL prefix**.
-7. Enter the **Website** URL (`https://timcat62.github.io/tiktok-instagram-youtube-poster/`) → **Verify** → **Download** the signature file (named like `tiktokXXXXXXXX.txt`).
-8. Put that file into the project's **`docs/`** folder, then commit and push it to GitHub. With GitHub Desktop: *Commit to main* → *Push origin*. You can also ask for help in an issue.
+7. Enter the **Website** URL (`https://timcat62.github.io/tiktok-instagram-youtube-poster/`). Use the **`github.io`** site address, **not** the `github.com` repository address, otherwise TikTok can't find the file → **Verify** → **Download** the signature file (named like `tiktokXXXXXXXX.txt`).
+8. Don't close the TikTok tab (a new attempt generates a different file). Put that file into the project's **`docs/`** folder, then commit and push it to GitHub. With GitHub Desktop: *Commit to main* → *Push origin*. You can also ask for help in an issue.
 9. Wait 1–2 minutes, check that `https://timcat62.github.io/tiktok-instagram-youtube-poster/tiktokXXXXXXXX.txt` opens in your browser, then click **Verify** in TikTok. Since the privacy policy and terms are under the same prefix, they're covered too.
 
 #### E. Products and scopes
@@ -327,7 +336,8 @@ If step 14 fails (error "URL blocked", "invalid redirect"…):
 Only do this if you want public direct posts. TikTok often rejects tools that look like they are for personal use only, so you may need to resubmit.
 
 20. Switch back to **Production**. In the **App review** section:
-    - **Explain how each product and scope works** (copy and adapt):
+    - **Explain how each product and scope works** (1,000 characters max). Start with one sentence presenting the app as a tool for creators in general, then describe each product (copy and adapt):
+      > Social Poster is a free, open-source desktop app that helps creators publish the same short video to TikTok, YouTube Shorts and Instagram Reels in one step.
       > **Login Kit / user.info.basic**: lets creators sign in with their TikTok account; the app displays their nickname and avatar so they know which account the video will be posted to.
       > **Content Posting API / video.publish**: posts a video the creator selected directly to their TikTok profile, with the caption, cover frame, privacy level and interaction settings they choose. Before every post the app queries creator_info, shows the creator's nickname, offers only the allowed privacy levels with no default, leaves comments/duets/stitches unchecked by default (and disabled when turned off in the creator's settings), supports commercial content disclosure (Your brand / Branded content), and shows the Music Usage Confirmation consent before the Publish button. The user explicitly clicks Publish and sees the processing status.
       > **video.upload**: used by the "Send as draft" option, which uploads the video to the creator's TikTok inbox so they can edit and post it from the TikTok app.
@@ -337,7 +347,14 @@ Only do this if you want public direct posts. TikTok often rejects tools that lo
       3. Tick TikTok → show the nickname, choose the visibility, the Allow comments/duets/stitches boxes, the commercial content toggle and the consent sentence.
       4. Click **Publish** → the status reaches "Published".
       5. Open the TikTok app or website and show the posted video.
-21. **Save** → **Submit for review**. Once the app is **Live**, put the **production** Client key/secret into Social Poster and reconnect.
+21. **Save** → **Submit for review**. A box asks *"Please describe your reason for this submission"* (120 characters max). Write:
+    ```
+    First submission: creators log in with Login Kit and publish their own videos via Content Posting API (Direct Post).
+    ```
+22. **Wait**: TikTok says app review takes several days to two weeks; the Content Posting (Direct Post) audit often takes 2 to 6 weeks. If changes are requested, fix them and resubmit (the wait starts again). Meanwhile, keep using the **sandbox** keys and **Send as draft** mode.
+23. Once the app is **Live**, put the **production** Client key/secret into Social Poster and reconnect.
+
+> Never share your **Client secret** (or App Secret) in screenshots. If it leaks, regenerate it in the developer portal and save the new one in the app.
 
 ---
 
