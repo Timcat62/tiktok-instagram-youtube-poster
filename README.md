@@ -175,7 +175,7 @@ You'll also need your **project number** (digits only, not the project ID): Goog
 
 **Section 3: Business Model and Google Contacts**
 - *Describe your organization's work as it relates to YouTube* (copy and adapt):
-  > I am an independent content creator. Social Poster is a free, open-source desktop application that I use to publish my own short-form videos. It runs locally on my computer: I import a video, choose a cover frame, write a title, description and hashtags, and the app uploads the video to my own YouTube channel as a Short (videos.insert) and sets the chosen thumbnail (thumbnails.set). It also reads my channel name (channels.list, mine=true) to show which channel is connected. The app only accesses the channel of the person who signs in with Google OAuth, only uploads videos that person explicitly selects, and stores nothing except the OAuth token, kept locally on the user's computer. There is no server, no data collection, no analytics, no advertising and no monetization. Source code: https://github.com/Timcat62/tiktok-instagram-youtube-poster
+  > I am an independent content creator. Social Poster is a free, open-source desktop application that I use to publish my own short-form videos. It runs locally on my computer: I import a video, choose a cover frame, write a description and hashtags, and the app uploads the video to my own YouTube channel as a Short (videos.insert) and sets the chosen thumbnail (thumbnails.set). It also reads my channel name (channels.list, mine=true) to show which channel is connected. The app only accesses the channel of the person who signs in with Google OAuth, only uploads videos that person explicitly selects, and stores nothing except the OAuth token, kept locally on the user's computer. There is no server, no data collection, no analytics, no advertising and no monetization. Source code: https://github.com/Timcat62/tiktok-instagram-youtube-poster
 - *Who is your target audience?*: **Individual Content Creators (YouTubers, influencers)**
 - *How does your API Client monetize or generate revenue?*: **Free service (we do not charge users)**
 - *Do you currently have a designated Google Partner Manager…?*: **No, I do not have a Google representative**
@@ -346,10 +346,10 @@ Only do this if you want public direct posts. TikTok often rejects tools that lo
 1. Open **Publish** and drop your video.
 2. Pick the **cover** with the slider, the ◀ ▶ buttons (or ← → on the keyboard), or the thumbnails.
 3. If the video is horizontal, choose how the Short should look (live preview).
-4. Write the **title** (YouTube only), the **description** and the **hashtags** (with or without `#`, separated by spaces). The final caption is `description + hashtags` and is the same on all three platforms.
+4. Write the **description** and the **hashtags** (with or without `#`, separated by spaces). The final caption is `description + hashtags` and is exactly the same on all three platforms. YouTube requires a title, so the app automatically uses the first line of the caption (100 characters max).
 5. Tick the platforms you want and set their options. For TikTok, you must choose who can view the video. Then click **Publish**. Each platform runs on its own: if one fails, the others keep going.
 
-Your draft (title, description, hashtags) and your choices (ticked platforms, YouTube visibility…) are remembered in your browser.
+Your draft (description, hashtags) and your choices (ticked platforms, YouTube visibility…) are remembered in your browser.
 
 ## How it works
 

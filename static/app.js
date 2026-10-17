@@ -476,8 +476,6 @@ function buildCaption() {
 }
 
 function updateTexts() {
-  const title = $("#title").value;
-  $("#title-count").textContent = `${title.length}/100`;
   const caption = buildCaption();
   const dc = $("#desc-count");
   dc.textContent = `${caption.length}/2200`;
@@ -490,16 +488,15 @@ function updateTexts() {
   tc.title = "Instagram accepts at most 30 hashtags";
   $("#tags-preview").innerHTML = tags.map((t) => `<span>${escapeHtml(t)}</span>`).join("");
   $("#caption-preview").textContent = caption || "(empty)";
-  storage.set("draft", { title, description: $("#description").value, hashtags: $("#hashtags").value });
+  storage.set("draft", { description: $("#description").value, hashtags: $("#hashtags").value });
 }
 
 {
   const draft = storage.get("draft", {});
-  $("#title").value = draft.title || "";
   $("#description").value = draft.description || "";
   $("#hashtags").value = draft.hashtags || "";
 }
-["#title", "#description", "#hashtags"].forEach((s) => $(s).addEventListener("input", updateTexts));
+["#description", "#hashtags"].forEach((s) => $(s).addEventListener("input", updateTexts));
 updateTexts();
 
 // ------------------------------------------------------------------ publishing
@@ -507,8 +504,8 @@ updateTexts();
 $("#publish-btn").addEventListener("click", async () => {
   const platforms = selectedPlatforms();
   const caption = buildCaption();
-  if (!$("#description").value.trim() && !$("#title").value.trim() && platforms.includes("youtube"))
-    return toast("Add at least a title or a description (YouTube needs one).", true);
+  if (!caption && platforms.includes("youtube"))
+    return toast("Add a description or hashtags (YouTube needs some text).", true);
   if (caption.length > 2200 && platforms.some((p) => p !== "youtube"))
     return toast("The caption is over 2200 characters (Instagram/TikTok limit).", true);
   if (parseHashtags($("#hashtags").value).length > 30 && platforms.includes("instagram"))
@@ -517,7 +514,6 @@ $("#publish-btn").addEventListener("click", async () => {
   const body = {
     video_id: state.video.id,
     platforms,
-    title: $("#title").value,
     description: $("#description").value,
     hashtags: $("#hashtags").value,
     cover_t: state.coverT,
@@ -588,7 +584,6 @@ async function pollJob() {
 
 $("#new-post").addEventListener("click", () => {
   $("#description").value = "";
-  $("#title").value = "";
   $("#hashtags").value = "";
   updateTexts();
   resetToUpload();

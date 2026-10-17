@@ -16,6 +16,15 @@ def build_caption(description: str, hashtags: list[str]) -> str:
     return "\n\n".join(p for p in (description.strip(), tags) if p)
 
 
+def youtube_title(caption: str) -> str:
+    """The YouTube API requires a title: use the start of the caption (first line, 100 chars max)."""
+    line = next((l.strip() for l in caption.splitlines() if l.strip()), "")
+    if len(line) <= 100:
+        return line
+    cut = line[:100].rsplit(" ", 1)[0]
+    return (cut if len(cut) > 50 else line[:99]).rstrip() + "…"
+
+
 def get(job_id: str) -> dict | None:
     with _lock:
         job = _jobs.get(job_id)
@@ -104,7 +113,7 @@ def _publish_one(job, platform, file, opts, meta, cover_t, cover_path):
     caption = build_caption(opts.get("description", ""), opts.get("hashtags", []))
     try:
         if platform == "youtube":
-            title = (opts.get("title") or "").strip() or (opts.get("description") or "").strip().split("\n")[0]
+            title = youtube_title(caption)
             is_short = meta["duration"] <= video.SHORT_MAX_SECONDS
             res = youtube.publish(
                 file, title=title, description=caption, tags=opts.get("hashtags", []),

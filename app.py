@@ -218,7 +218,6 @@ def publish():
     opts = {
         "video_id": body["video_id"],
         "platforms": platforms,
-        "title": body.get("title", ""),
         "description": body.get("description", ""),
         "hashtags": _normalize_hashtags(body.get("hashtags", "")),
         "cover_t": float(body.get("cover_t", 0)),
