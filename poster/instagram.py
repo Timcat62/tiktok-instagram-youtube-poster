@@ -158,6 +158,12 @@ class _ProgressFile:
         self._f.close()
 
 
+def _container_status(cid: str, token: str) -> tuple[str | None, str | None]:
+    st = _check(requests.get(f"{GRAPH}/{cid}", params={
+        "fields": "status_code,status", "access_token": token}, timeout=30))
+    return st.get("status_code"), st.get("status")
+
+
 def publish(path, *, caption, thumb_offset_ms, report) -> dict:
     acc = store.load("instagram")
     token, ig = acc.get("token"), (acc.get("account") or {}).get("id")
@@ -174,7 +180,7 @@ def publish(path, *, caption, thumb_offset_ms, report) -> dict:
     }, timeout=60))
     cid = container["id"]
 
-    last_error = None
+    upload_error = None
     for attempt in range(3):
         body = _ProgressFile(path, lambda p: report("Uploading video…", p * 0.9))
         try:
@@ -182,39 +188,31 @@ def publish(path, *, caption, thumb_offset_ms, report) -> dict:
                 "Authorization": f"OAuth {token}",
                 "offset": "0",
                 "file_size": str(len(body)),
-                "Content-Type": "application/octet-stream",
             }, data=body, timeout=(30, 3600))
         finally:
             body.close()
         if r.ok:
+            upload_error = None
             break
-        last_error = f"HTTP {r.status_code}: {r.text[:400]}"
-        if r.status_code < 500:
+        upload_error = f"HTTP {r.status_code}: {r.text[:400]}"
+        # rupload sometimes answers 500 although it received the file and processing has started:
+        # only re-send when Instagram says the error is retriable and nothing is being processed.
+        if '"retriable":true' not in r.text.replace(" ", "") or _container_status(cid, token)[0] == "IN_PROGRESS":
             break
         report(f"Upload failed, retrying ({attempt + 1}/3)…", 0.0)
         time.sleep(5)
-    else:
-        r = None
-    if r is None or not r.ok:
-        detail = ""
-        try:  # the container status usually carries the precise reason (error code + message)
-            st = requests.get(f"{GRAPH}/{cid}", params={"fields": "status_code,status", "access_token": token},
-                              timeout=30).json()
-            detail = f" Container status: {st.get('status_code')} — {st.get('status') or st.get('error', {}).get('message')}"
-        except Exception:  # noqa: BLE001 - best effort diagnostic
-            pass
-        raise RuntimeError(f"Instagram upload failed ({last_error}).{detail}")
 
     report("Instagram is processing…", 0.92)
     deadline = time.time() + 20 * 60
     while True:
-        st = _check(requests.get(f"{GRAPH}/{cid}", params={
-            "fields": "status_code,status", "access_token": token}, timeout=30))
-        code = st.get("status_code")
+        code, status = _container_status(cid, token)
         if code == "FINISHED":
             break
-        if code in ("ERROR", "EXPIRED"):
-            raise RuntimeError(f"Instagram rejected the video: {st.get('status') or code}")
+        if code in ("ERROR", "EXPIRED") or (upload_error and code not in ("IN_PROGRESS", "PUBLISHED")):
+            msg = f"Instagram rejected the video: {status or code}"
+            if upload_error:
+                msg += f" (upload response: {upload_error})"
+            raise RuntimeError(msg)
         if time.time() > deadline:
             raise RuntimeError("Instagram is taking too long to process the video (over 20 min).")
         time.sleep(5)
