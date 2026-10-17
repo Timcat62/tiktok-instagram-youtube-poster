@@ -1,0 +1,15 @@
+# Données locales : jetons de connexion, secrets, vidéos importées. NE JAMAIS VERSIONNER.
+data/
+client_secret*.json
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Divers
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Social Poster</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">🎬 Social Poster</div>
+  <nav class="tabs">
+    <button class="tab active" data-tab="publish">Publier</button>
+    <button class="tab" data-tab="accounts">Comptes <span id="accounts-badge" class="badge hidden"></span></button>
+  </nav>
+</header>
+
+<div id="toast" class="toast hidden"></div>
+
+<main>
+  <!-- ============================== PUBLIER ============================== -->
+  <section id="tab-publish" class="tab-panel">
+    <div id="dropzone" class="dropzone">
+      <input type="file" id="file-input" accept="video/*,.mkv,.mov" hidden>
+      <div class="dz-icon">⬆</div>
+      <p><strong>Glisse ta vidéo ici</strong> ou clique pour la choisir</p>
+      <p class="muted">Verticale ou horizontale · MP4, MOV, WEBM, MKV…</p>
+      <div id="upload-progress" class="progress hidden"><div></div></div>
+    </div>
+
+    <div id="editor" class="hidden">
+      <div class="video-info">
+        <span id="video-name" class="video-name"></span>
+        <span id="video-meta" class="chips"></span>
+        <button id="change-video" class="btn ghost small">Changer de vidéo</button>
+      </div>
+
+      <div class="grid">
+        <!-- Colonne gauche : cover -->
+        <div class="card">
+          <h2>Cover</h2>
+          <p class="muted">Choisis la frame qui servira de miniature sur les 3 réseaux.</p>
+          <div class="cover-stage">
+            <img id="cover-preview" alt="Frame sélectionnée">
+            <div id="cover-loading" class="spinner hidden"></div>
+          </div>
+          <div class="scrub">
+            <button id="frame-prev" class="btn ghost small" title="Frame précédente">◀</button>
+            <input type="range" id="cover-slider" min="0" max="1" step="0.001" value="0">
+            <button id="frame-next" class="btn ghost small" title="Frame suivante">▶</button>
+            <span id="cover-time" class="mono">0:00.00</span>
+          </div>
+          <div id="filmstrip" class="filmstrip"></div>
+
+          <div id="horizontal-block" class="sub hidden">
+            <h3>Vidéo horizontale → Short YouTube</h3>
+            <p class="muted">YouTube ne classe en Short que les vidéos verticales ou carrées. La vidéo sera convertie en 9:16 pour YouTube.</p>
+            <div class="modes">
+              <label class="mode"><input type="radio" name="vmode" value="blur" checked><span>Fond flouté</span></label>
+              <label class="mode"><input type="radio" name="vmode" value="black"><span>Bandes noires</span></label>
+              <label class="mode"><input type="radio" name="vmode" value="crop"><span>Recadrage centre</span></label>
+            </div>
+            <div class="short-preview-wrap">
+              <img id="short-preview" alt="Aperçu du Short">
+            </div>
+            <label class="check"><input type="checkbox" id="vertical-all"> Utiliser aussi ce format vertical pour Instagram et TikTok</label>
+          </div>
+          <div id="duration-warning" class="alert warn hidden"></div>
+        </div>
+
+        <!-- Colonne droite : textes + réseaux -->
+        <div class="col">
+          <div class="card">
+            <h2>Texte</h2>
+            <label class="field">
+              <span><span>Titre <em class="muted">(YouTube uniquement)</em></span> <span class="counter" id="title-count">0/100</span></span>
+              <input type="text" id="title" maxlength="100" placeholder="Si vide : 1re ligne de la description">
+            </label>
+            <label class="field">
+              <span>Description <span class="counter" id="desc-count"></span></span>
+              <textarea id="description" rows="5" placeholder="La même description sur tous les réseaux"></textarea>
+            </label>
+            <label class="field">
+              <span>Hashtags <span class="counter" id="tags-count"></span></span>
+              <input type="text" id="hashtags" placeholder="#voyage #paris summer (séparés par des espaces)">
+            </label>
+            <div id="tags-preview" class="tags"></div>
+            <details class="caption-preview">
+              <summary>Aperçu de la légende finale</summary>
+              <pre id="caption-preview"></pre>
+            </details>
+          </div>
+
+          <div class="card">
+            <h2>Réseaux</h2>
+            <div class="platforms">
+              <div class="platform" data-platform="youtube">
+                <label class="pf-head">
+                  <input type="checkbox" class="pf-check" value="youtube">
+                  <span class="pf-logo yt">▶</span>
+                  <span class="pf-name">YouTube <small>Short</small></span>
+                  <span class="pf-account"></span>
+                </label>
+                <div class="pf-options">
+                  <label class="inline">Visibilité
+                    <select id="yt-privacy">
+                      <option value="public">Publique</option>
+                      <option value="unlisted">Non répertoriée</option>
+                      <option value="private">Privée</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+
+              <div class="platform" data-platform="instagram">
+                <label class="pf-head">
+                  <input type="checkbox" class="pf-check" value="instagram">
+                  <span class="pf-logo ig">◎</span>
+                  <span class="pf-name">Instagram <small>Reel</small></span>
+                  <span class="pf-account"></span>
+                </label>
+              </div>
+
+              <div class="platform" data-platform="tiktok">
+                <label class="pf-head">
+                  <input type="checkbox" class="pf-check" value="tiktok">
+                  <span class="pf-logo tt">♪</span>
+                  <span class="pf-name">TikTok</span>
+                  <span class="pf-account"></span>
+                </label>
+                <div class="pf-options">
+                  <label class="inline">Mode
+                    <select id="tt-mode">
+                      <option value="direct">Publication directe</option>
+                      <option value="draft">Envoyer en brouillon (à finir dans l'app)</option>
+                    </select>
+                  </label>
+                  <label class="inline tt-direct">Visibilité
+                    <select id="tt-privacy"><option value="SELF_ONLY">Moi uniquement</option></select>
+                  </label>
+                  <div class="tt-direct toggles">
+                    <label class="check"><input type="checkbox" id="tt-no-comment"> Désactiver les commentaires</label>
+                    <label class="check"><input type="checkbox" id="tt-no-duet"> Désactiver les duos</label>
+                    <label class="check"><input type="checkbox" id="tt-no-stitch"> Désactiver les collages</label>
+                  </div>
+                  <p class="muted small tt-draft hidden">En mode brouillon, TikTok ne récupère ni la légende ni la cover : tu les ajoutes dans l'app.</p>
+                </div>
+              </div>
+            </div>
+            <p id="no-account-hint" class="muted small hidden">Les réseaux grisés ne sont pas encore connectés : va dans l'onglet <a href="#accounts" data-goto="accounts">Comptes</a>.</p>
+
+            <button id="publish-btn" class="btn primary big" disabled>Publier</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="job" class="card hidden">
+      <h2>Publication en cours</h2>
+      <div id="job-prep" class="job-row"></div>
+      <div id="job-rows"></div>
+      <div class="job-actions hidden" id="job-actions">
+        <button id="new-post" class="btn primary">Nouvelle publication</button>
+        <button id="back-edit" class="btn ghost">Revenir à la vidéo</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== COMPTES ============================== -->
+  <section id="tab-accounts" class="tab-panel hidden">
+    <p class="muted intro">Chaque réseau demande de créer (gratuitement) une « app développeur » à ton nom, puis de connecter ton compte. Tout reste stocké sur ton ordinateur, dans le dossier <code>data/</code>. Le guide pas à pas est dans le <a href="https://github.com/Timcat62/tiktok-instagram-youtube-poster#configuration-des-comptes" target="_blank">README</a>.</p>
+
+    <div class="accounts">
+      <!-- YouTube -->
+      <div class="card account" id="acc-youtube">
+        <div class="acc-head"><span class="pf-logo yt">▶</span><h2>YouTube</h2><span class="acc-status"></span></div>
+        <ol class="steps">
+          <li>Sur <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a>, crée un projet et active <b>YouTube Data API v3</b>.</li>
+          <li>Écran de consentement OAuth : type <b>Externe</b>, ajoute ton adresse e-mail comme utilisateur test, puis passe l'app en <b>Production</b> (sinon la connexion expire tous les 7 jours).</li>
+          <li>Identifiants → Créer un ID client OAuth → type <b>Application de bureau</b> → télécharge le JSON.</li>
+        </ol>
+        <label class="file-btn btn ghost">Importer client_secret.json<input type="file" id="yt-client" accept=".json,application/json" hidden></label>
+        <span class="yt-client-state muted small"></span>
+        <div class="acc-actions">
+          <button class="btn primary" id="yt-connect">Connecter ma chaîne</button>
+          <button class="btn ghost danger disconnect" data-platform="youtube">Déconnecter</button>
+        </div>
+        <p class="muted small yt-wait hidden">Une fenêtre Google s'est ouverte dans ton navigateur : connecte-toi et accepte.</p>
+      </div>
+
+      <!-- Instagram -->
+      <div class="card account" id="acc-instagram">
+        <div class="acc-head"><span class="pf-logo ig">◎</span><h2>Instagram</h2><span class="acc-status"></span></div>
+        <ol class="steps">
+          <li>Ton compte Instagram doit être <b>professionnel</b> (Créateur ou Entreprise) et <b>lié à une Page Facebook</b>.</li>
+          <li>Sur <a href="https://developers.facebook.com/apps/" target="_blank">Meta for Developers</a>, crée une app (type Entreprise), ajoute le produit <b>Instagram</b> (« API setup with Facebook login ») et <b>Facebook Login</b>.</li>
+          <li>Dans Facebook Login → Paramètres, ajoute l'URI de redirection : <code class="copy" id="ig-redirect"></code></li>
+          <li>Paramètres → Général : copie l'<b>App ID</b> et l'<b>App Secret</b> ci-dessous.</li>
+        </ol>
+        <div class="form-row">
+          <input type="text" id="ig-app-id" placeholder="App ID">
+          <input type="password" id="ig-app-secret" placeholder="App Secret">
+          <button class="btn ghost" id="ig-save">Enregistrer</button>
+        </div>
+        <div class="acc-actions">
+          <a class="btn primary" id="ig-connect" href="/auth/instagram/start">Connecter avec Facebook</a>
+          <button class="btn ghost danger disconnect" data-platform="instagram">Déconnecter</button>
+        </div>
+        <div class="ig-accounts hidden">
+          <label class="inline">Compte utilisé <select id="ig-account-select"></select></label>
+        </div>
+        <details class="manual">
+          <summary>Plan B : coller un jeton d'accès manuellement</summary>
+          <p class="muted small">Génère un jeton dans le <a href="https://developers.facebook.com/tools/explorer/" target="_blank">Graph API Explorer</a> avec les permissions <code>instagram_basic, instagram_content_publish, pages_show_list, pages_read_engagement, business_management</code>. S'il est de courte durée, il est converti en jeton de 60 jours (App ID/Secret requis).</p>
+          <div class="form-row">
+            <input type="password" id="ig-token" placeholder="Jeton d'accès">
+            <button class="btn ghost" id="ig-token-save">Utiliser ce jeton</button>
+          </div>
+        </details>
+      </div>
+
+      <!-- TikTok -->
+      <div class="card account" id="acc-tiktok">
+        <div class="acc-head"><span class="pf-logo tt">♪</span><h2>TikTok</h2><span class="acc-status"></span></div>
+        <ol class="steps">
+          <li>Sur <a href="https://developers.tiktok.com/apps/" target="_blank">TikTok for Developers</a>, crée une app et coche la plateforme <b>Desktop</b>.</li>
+          <li>Ajoute les produits <b>Login Kit</b> et <b>Content Posting API</b> (active « Direct Post »), avec les scopes <code>user.info.basic, video.publish, video.upload</code>.</li>
+          <li>URI de redirection (Login Kit → Desktop) : <code class="copy" id="tt-redirect"></code></li>
+          <li>Pour tester sans audit : utilise le <b>Sandbox</b> et ajoute ton compte comme « Target user ». Ton compte TikTok doit être <b>privé</b> tant que l'app n'est pas auditée.</li>
+        </ol>
+        <div class="form-row">
+          <input type="text" id="tt-client-key" placeholder="Client key">
+          <input type="password" id="tt-client-secret" placeholder="Client secret">
+          <button class="btn ghost" id="tt-save">Enregistrer</button>
+        </div>
+        <div class="acc-actions">
+          <a class="btn primary" id="tt-connect" href="/auth/tiktok/start">Connecter TikTok</a>
+          <button class="btn ghost danger disconnect" data-platform="tiktok">Déconnecter</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
