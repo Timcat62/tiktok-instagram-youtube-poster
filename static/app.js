@@ -131,6 +131,7 @@ function renderAccounts() {
   setStatus("instagram", igText, igCls);
   $("#ig-redirect").textContent = s.redirects.instagram;
   if (ig.app_id && !$("#ig-app-id").value) $("#ig-app-id").value = ig.app_id;
+  if (ig.config_id && !$("#ig-config-id").value) $("#ig-config-id").value = ig.config_id;
   if (ig.configured && !$("#ig-app-secret").value) $("#ig-app-secret").placeholder = "App Secret (saved)";
   $("#ig-connect").classList.toggle("disabled", !ig.configured);
   $("#ig-connect").textContent = ig.connected ? "Reconnect" : "Connect with Facebook";
@@ -190,8 +191,10 @@ function selectedPlatforms() {
 function updatePublishButton() {
   const n = selectedPlatforms().length;
   const btn = $("#publish-btn");
-  btn.disabled = !state.video || n === 0;
-  btn.textContent = n ? `Publish to ${selectedPlatforms().map((p) => LABELS[p]).join(", ")}` : "Select at least one platform";
+  const problem = n ? tiktokProblem() : null;
+  btn.disabled = !state.video || n === 0 || !!problem;
+  btn.textContent = !n ? "Select at least one platform"
+    : problem || `Publish to ${selectedPlatforms().map((p) => LABELS[p]).join(", ")}`;
 }
 
 $$(".pf-check").forEach((cb) =>
@@ -204,22 +207,27 @@ $$(".pf-check").forEach((cb) =>
   })
 );
 
-async function loadCreatorInfo() {
-  if (state.creatorInfo || state.creatorInfoLoading) return;
+// TikTok requires fresh creator info every time the posting form is shown (Direct Post guidelines).
+async function loadCreatorInfo(force = false) {
+  if (state.creatorInfoLoading || (state.creatorInfo && !force)) return;
   state.creatorInfoLoading = true;
   try {
     const { info } = await api("/api/tiktok/creator_info");
     state.creatorInfo = info;
     const sel = $("#tt-privacy");
-    const saved = storage.get("tt-privacy", "SELF_ONLY");
-    const options = info.privacy_level_options || ["SELF_ONLY"];
-    sel.innerHTML = options
-      .map((o) => `<option value="${o}" ${o === saved ? "selected" : ""}>${PRIVACY_LABELS[o] || o}</option>`)
-      .join("");
-    if (info.comment_disabled) $("#tt-no-comment").checked = true;
-    if (info.duet_disabled) $("#tt-no-duet").checked = true;
-    if (info.stitch_disabled) $("#tt-no-stitch").checked = true;
-    if (info.creator_nickname) $('.platform[data-platform="tiktok"] .pf-account').textContent = info.creator_nickname;
+    const current = sel.value;
+    const options = info.privacy_level_options || [];
+    // No default value: the user has to pick the visibility themselves.
+    sel.innerHTML = `<option value="" disabled ${options.includes(current) ? "" : "selected"}>Select…</option>` +
+      options.map((o) => `<option value="${o}" ${o === current ? "selected" : ""}>${PRIVACY_LABELS[o] || o}</option>`).join("");
+    for (const [key, id] of [["comment_disabled", "#tt-allow-comment"], ["duet_disabled", "#tt-allow-duet"], ["stitch_disabled", "#tt-allow-stitch"]]) {
+      const cb = $(id);
+      cb.disabled = !!info[key];
+      if (info[key]) cb.checked = false;
+      cb.closest("label").title = info[key] ? "Turned off in your TikTok privacy settings" : "";
+    }
+    if (info.creator_nickname) $('.platform[data-platform="tiktok"] .pf-account').textContent = `Posting as ${info.creator_nickname}`;
+    updateTikTokForm();
     updateWarnings();
   } catch (e) {
     toast(`TikTok: ${e.message}`, true);
@@ -228,13 +236,58 @@ async function loadCreatorInfo() {
   }
 }
 
-$("#tt-privacy").addEventListener("change", (e) => storage.set("tt-privacy", e.target.value));
+const MUSIC_POLICY = '<a href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en" target="_blank" rel="noopener">Music Usage Confirmation</a>';
+const BRANDED_POLICY = '<a href="https://www.tiktok.com/legal/page/global/bc-policy/en" target="_blank" rel="noopener">Branded Content Policy</a>';
+
+function updateTikTokForm() {
+  const commercial = $("#tt-commercial").checked;
+  const yourBrand = commercial && $("#tt-your-brand").checked;
+  const branded = commercial && $("#tt-branded").checked;
+  $("#tt-commercial-opts").classList.toggle("hidden", !commercial);
+
+  let label = "";
+  if (branded) label = 'Your video will be labeled as "Paid partnership".';
+  else if (yourBrand) label = 'Your video will be labeled as "Promotional content".';
+  else if (commercial) label = "You need to indicate if your content promotes yourself, a third party, or both.";
+  $("#tt-commercial-label").textContent = label;
+
+  // Branded content can't be private.
+  const selfOnly = $('#tt-privacy option[value="SELF_ONLY"]');
+  if (selfOnly) {
+    selfOnly.disabled = branded;
+    selfOnly.title = branded ? "Branded content visibility cannot be set to private." : "";
+    if (branded && $("#tt-privacy").value === "SELF_ONLY") {
+      $("#tt-privacy").value = "";
+      toast("Branded content can't be private: choose another visibility.", true);
+    }
+  }
+
+  $("#tt-consent").innerHTML = branded
+    ? `By posting, you agree to TikTok's ${BRANDED_POLICY} and ${MUSIC_POLICY}.`
+    : `By posting, you agree to TikTok's ${MUSIC_POLICY}.`;
+  updatePublishButton();
+}
+
+function tiktokProblem() {
+  if (!selectedPlatforms().includes("tiktok") || $("#tt-mode").value === "draft") return null;
+  if (!$("#tt-privacy").value) return "Choose who can view the TikTok video";
+  if ($("#tt-commercial").checked && !$("#tt-your-brand").checked && !$("#tt-branded").checked)
+    return "Choose your commercial content type";
+  const max = state.creatorInfo?.max_video_post_duration_sec;
+  if (state.video && max && state.video.duration > max) return `TikTok allows ${max} s max for this account`;
+  return null;
+}
+
+["#tt-commercial", "#tt-your-brand", "#tt-branded"].forEach((s) => $(s).addEventListener("change", updateTikTokForm));
+$("#tt-privacy").addEventListener("change", updatePublishButton);
 $("#tt-mode").addEventListener("change", (e) => {
   const draft = e.target.value === "draft";
   $$(".tt-direct").forEach((el) => el.classList.toggle("hidden", draft));
   $(".tt-draft").classList.toggle("hidden", !draft);
   storage.set("tt-mode", e.target.value);
+  updatePublishButton();
 });
+updateTikTokForm();
 $("#yt-privacy").value = storage.get("yt-privacy", "public");
 $("#yt-privacy").addEventListener("change", (e) => storage.set("yt-privacy", e.target.value));
 $("#tt-mode").value = storage.get("tt-mode", "direct");
@@ -294,6 +347,7 @@ function loadVideo(v) {
   setCover(0);
 
   $("#horizontal-block").classList.toggle("hidden", v.orientation !== "horizontal");
+  if ($('.pf-check[value="tiktok"]').checked) loadCreatorInfo(true);
   updateWarnings();
   updatePublishButton();
 }
@@ -473,9 +527,11 @@ $("#publish-btn").addEventListener("click", async () => {
     tiktok: {
       mode: $("#tt-mode").value,
       privacy: $("#tt-privacy").value,
-      disable_comment: $("#tt-no-comment").checked,
-      disable_duet: $("#tt-no-duet").checked,
-      disable_stitch: $("#tt-no-stitch").checked,
+      disable_comment: !$("#tt-allow-comment").checked,
+      disable_duet: !$("#tt-allow-duet").checked,
+      disable_stitch: !$("#tt-allow-stitch").checked,
+      brand_organic: $("#tt-commercial").checked && $("#tt-your-brand").checked,
+      brand_content: $("#tt-commercial").checked && $("#tt-branded").checked,
     },
   };
   $("#publish-btn").disabled = true;
@@ -571,7 +627,7 @@ $("#yt-connect").addEventListener("click", async () => {
 $("#ig-save").addEventListener("click", async () => {
   try {
     await api("/api/accounts/instagram/config", {
-      json: { app_id: $("#ig-app-id").value, app_secret: $("#ig-app-secret").value },
+      json: { app_id: $("#ig-app-id").value, app_secret: $("#ig-app-secret").value, config_id: $("#ig-config-id").value },
     });
     $("#ig-app-secret").value = "";
     toast("Meta credentials saved ✓");

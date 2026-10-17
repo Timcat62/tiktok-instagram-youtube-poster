@@ -180,6 +180,12 @@ select { width: auto; padding: 6px 10px; }
 .platform:not(.checked) .pf-options { display: none; }
 .toggles { display: flex; flex-wrap: wrap; gap: 0 16px; }
 .toggles .check { margin-top: 0; }
+.check input:disabled + * , .check:has(input:disabled) { opacity: .5; cursor: not-allowed; }
+.tt-commercial, .tt-consent { flex-basis: 100%; }
+.tt-commercial .check { margin-top: 0; }
+.sub-opts { margin: 6px 0 0 26px; display: flex; flex-direction: column; gap: 4px; }
+.sub-opts .check { align-items: flex-start; }
+.tt-consent { margin: 0; }
 .pf-logo {
   display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 8px;
   color: #fff; font-size: 14px; flex-shrink: 0;

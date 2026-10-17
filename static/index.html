@@ -136,14 +136,26 @@
                       <option value="draft">Send as draft (finish in the app)</option>
                     </select>
                   </label>
-                  <label class="inline tt-direct">Visibility
-                    <select id="tt-privacy"><option value="SELF_ONLY">Only me</option></select>
+                  <label class="inline tt-direct">Who can view this video
+                    <select id="tt-privacy"><option value="" selected disabled>Select…</option></select>
                   </label>
                   <div class="tt-direct toggles">
-                    <label class="check"><input type="checkbox" id="tt-no-comment"> Disable comments</label>
-                    <label class="check"><input type="checkbox" id="tt-no-duet"> Disable duets</label>
-                    <label class="check"><input type="checkbox" id="tt-no-stitch"> Disable stitches</label>
+                    <label class="check"><input type="checkbox" id="tt-allow-comment"> Allow comments</label>
+                    <label class="check"><input type="checkbox" id="tt-allow-duet"> Allow duets</label>
+                    <label class="check"><input type="checkbox" id="tt-allow-stitch"> Allow stitches</label>
                   </div>
+                  <div class="tt-direct tt-commercial">
+                    <label class="check" title="You need to indicate if your content promotes yourself, a third party, or both.">
+                      <input type="checkbox" id="tt-commercial"> Disclose commercial content
+                    </label>
+                    <div id="tt-commercial-opts" class="sub-opts hidden">
+                      <label class="check"><input type="checkbox" id="tt-your-brand"> <span><b>Your brand</b> <span class="muted small">— you are promoting yourself or your own business.</span></span></label>
+                      <label class="check"><input type="checkbox" id="tt-branded"> <span><b>Branded content</b> <span class="muted small">— you are promoting another brand or a third party.</span></span></label>
+                      <p id="tt-commercial-label" class="muted small"></p>
+                    </div>
+                  </div>
+                  <p id="tt-consent" class="small tt-direct tt-consent"></p>
+                  <p class="muted small tt-direct">After publishing, it may take a few minutes for the video to appear on your TikTok profile.</p>
                   <p class="muted small tt-draft hidden">In draft mode, TikTok doesn't receive the caption or the cover: you add them in the app.</p>
                 </div>
               </div>
@@ -177,7 +189,7 @@
         <div class="acc-head"><span class="pf-logo yt">▶</span><h2>YouTube</h2><span class="acc-status"></span></div>
         <ol class="steps">
           <li>In the <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a>, create a project and enable <b>YouTube Data API v3</b>.</li>
-          <li>OAuth consent screen: type <b>External</b>, add your email as a test user, then switch the app to <b>In production</b> (otherwise the login expires every 7 days).</li>
+          <li>Google Auth Platform (OAuth consent screen): audience <b>External</b>, then <b>Publish app</b> so it is <b>In production</b> (otherwise the login expires every 7 days).</li>
           <li>Credentials → Create OAuth client ID → type <b>Desktop app</b> → download the JSON.</li>
         </ol>
         <label class="file-btn btn ghost">Import client_secret.json<input type="file" id="yt-client" accept=".json,application/json" hidden></label>
@@ -201,6 +213,7 @@
         <div class="form-row">
           <input type="text" id="ig-app-id" placeholder="App ID">
           <input type="password" id="ig-app-secret" placeholder="App Secret">
+          <input type="text" id="ig-config-id" placeholder="Configuration ID (optional)">
           <button class="btn ghost" id="ig-save">Save</button>
         </div>
         <div class="acc-actions">

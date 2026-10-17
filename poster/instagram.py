@@ -33,21 +33,26 @@ def _check(r: requests.Response) -> dict:
     return data
 
 
-def set_app(app_id: str, app_secret: str) -> None:
-    store.update("instagram", app_id=app_id.strip(), app_secret=app_secret.strip())
+def set_app(app_id: str, app_secret: str, config_id: str = "") -> None:
+    store.update("instagram", app_id=app_id.strip(), app_secret=app_secret.strip(), config_id=config_id.strip())
 
 
 def auth_url(state: str) -> str:
     acc = store.load("instagram")
     if not acc.get("app_id"):
         raise ValueError("Enter your Meta app's App ID and App Secret first.")
-    return f"https://www.facebook.com/{API_VERSION}/dialog/oauth?" + urlencode({
+    params = {
         "client_id": acc["app_id"],
         "redirect_uri": REDIRECT_URI,
         "state": state,
-        "scope": SCOPES,
         "response_type": "code",
-    })
+    }
+    # "Facebook Login for Business" apps can use a configuration ID instead of a scope list.
+    if acc.get("config_id"):
+        params["config_id"] = acc["config_id"]
+    else:
+        params["scope"] = SCOPES
+    return f"https://www.facebook.com/{API_VERSION}/dialog/oauth?" + urlencode(params)
 
 
 def _long_lived(token: str) -> tuple[str, int | None]:
@@ -121,6 +126,7 @@ def status() -> dict:
     return {
         "configured": bool(acc.get("app_id") and acc.get("app_secret")),
         "app_id": acc.get("app_id", ""),
+        "config_id": acc.get("config_id", ""),
         "connected": bool(acc.get("token") and acc.get("account")) and not (exp and exp < time.time()),
         "expired": bool(exp and exp < time.time()),
         "expires_at": exp,

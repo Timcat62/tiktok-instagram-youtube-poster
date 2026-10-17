@@ -74,7 +74,7 @@ def ig_config():
     body = request.get_json(force=True)
     if not body.get("app_id") or not body.get("app_secret"):
         raise ValueError("App ID and App Secret are required.")
-    instagram.set_app(body["app_id"], body["app_secret"])
+    instagram.set_app(body["app_id"], body["app_secret"], body.get("config_id") or "")
     return ok()
 
 

@@ -117,10 +117,12 @@ def _publish_one(job, platform, file, opts, meta, cover_t, cover_path):
             t = opts.get("tiktok", {})
             res = tiktok.publish(
                 file, caption=caption, cover_ms=cover_t * 1000,
-                privacy=t.get("privacy", "SELF_ONLY"), mode=t.get("mode", "direct"),
-                disable_comment=t.get("disable_comment", False),
-                disable_duet=t.get("disable_duet", False),
-                disable_stitch=t.get("disable_stitch", False),
+                privacy=t.get("privacy", ""), mode=t.get("mode", "direct"),
+                disable_comment=t.get("disable_comment", True),
+                disable_duet=t.get("disable_duet", True),
+                disable_stitch=t.get("disable_stitch", True),
+                brand_organic=t.get("brand_organic", False),
+                brand_content=t.get("brand_content", False),
                 report=report,
             )
         else:

@@ -132,7 +132,8 @@ def _content_type(path) -> str:
     return {".mov": "video/quicktime", ".webm": "video/webm"}.get(ext, "video/mp4")
 
 
-def publish(path, *, caption, cover_ms, privacy, mode, disable_comment, disable_duet, disable_stitch, report) -> dict:
+def publish(path, *, caption, cover_ms, privacy, mode, disable_comment, disable_duet, disable_stitch,
+            brand_organic=False, brand_content=False, report) -> dict:
     token = access_token()
     size = path.stat().st_size
 
@@ -152,6 +153,10 @@ def publish(path, *, caption, cover_ms, privacy, mode, disable_comment, disable_
     else:
         info = creator_info()
         options = info.get("privacy_level_options") or []
+        if not privacy:
+            raise RuntimeError("Choose who can view the video on TikTok.")
+        if brand_content and privacy == "SELF_ONLY":
+            raise RuntimeError("Branded content can't be posted as \"Only me\".")
         if options and privacy not in options:
             raise RuntimeError(f"Privacy \"{privacy}\" is not allowed for this account (allowed: {', '.join(options)}).")
         post_info = {
@@ -161,6 +166,8 @@ def publish(path, *, caption, cover_ms, privacy, mode, disable_comment, disable_
             "disable_duet": bool(disable_duet),
             "disable_stitch": bool(disable_stitch),
             "video_cover_timestamp_ms": int(cover_ms),
+            "brand_organic_toggle": bool(brand_organic),
+            "brand_content_toggle": bool(brand_content),
         }
         init = _check(requests.post(f"{API}/post/publish/video/init/", headers=_headers(token),
                                     json={"post_info": post_info, "source_info": source_info}, timeout=60))

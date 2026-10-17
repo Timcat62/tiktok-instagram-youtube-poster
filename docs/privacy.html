@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Privacy Policy · Social Poster</title>
+  <link rel="icon" href="icon.png">
+  <link rel="stylesheet" href="site.css">
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <nav>
+      <a class="brand" href="./">🎬 Social Poster</a>
+      <a href="privacy.html">Privacy Policy</a>
+      <a href="terms.html">Terms of Service</a>
+      <a href="https://github.com/Timcat62/tiktok-instagram-youtube-poster">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <h1>Privacy Policy</h1>
+  <p><i>Last updated: October 17, 2026</i></p>
+
+  <p>Social Poster ("the app", "we") is a free, open-source application that runs entirely on your own computer. It lets you publish a video to YouTube, Instagram and TikTok. This policy explains which data the app accesses, how it is used and stored, and how you can delete it.</p>
+
+  <h2>1. Summary</h2>
+  <ul>
+    <li>The app has <b>no server</b> and <b>no user database</b>. We (the developers) never receive your videos, your account data or your login tokens.</li>
+    <li>Everything the app stores stays on <b>your computer</b>, in the app's <code>data/</code> folder.</li>
+    <li>Your data is only sent to the platforms you choose to publish to (YouTube, Instagram, TikTok), through their official APIs.</li>
+    <li>The app contains no analytics, no advertising and no tracking.</li>
+  </ul>
+
+  <h2>2. YouTube API Services</h2>
+  <p>Social Poster uses <b>YouTube API Services</b>. By using Social Poster with YouTube, you agree to be bound by the <a href="https://www.youtube.com/t/terms">YouTube Terms of Service</a>. Google's handling of your data is described in the <a href="https://policies.google.com/privacy">Google Privacy Policy</a>.</p>
+  <p>When you connect a YouTube channel, the app requests the following permissions (OAuth scopes):</p>
+  <ul>
+    <li><code>youtube.upload</code>: to upload the videos you choose and set their thumbnail;</li>
+    <li><code>youtube.readonly</code>: to read your channel's name and ID, displayed in the app so you know which channel is connected.</li>
+  </ul>
+  <p>The app accesses and uses this data <b>only</b> to upload the videos you explicitly publish and to show which channel is connected. It does not read, collect or store any other YouTube data (no comments, statistics, subscribers or viewing history).</p>
+  <p>You can revoke the app's access to your Google account at any time from your <a href="https://security.google.com/settings/security/permissions">Google security settings page</a>.</p>
+
+  <h2>3. Instagram / Meta</h2>
+  <p>When you connect Instagram, the app uses Meta's official Instagram Graph API with the permissions <code>instagram_basic</code>, <code>instagram_content_publish</code>, <code>pages_show_list</code>, <code>pages_read_engagement</code> and <code>business_management</code>. They are used only to find the Instagram professional account linked to your Facebook Page (ID and username) and to publish the Reels you choose. You can remove the app's access from your Facebook settings (<i>Settings &amp; privacy → Settings → Business integrations</i>). See the <a href="https://privacycenter.instagram.com/policy">Instagram/Meta Privacy Policy</a>.</p>
+
+  <h2>4. TikTok</h2>
+  <p>When you connect TikTok, the app uses TikTok's official Login Kit and Content Posting API with the scopes <code>user.info.basic</code>, <code>video.upload</code> and <code>video.publish</code>. They are used only to display your TikTok nickname and avatar, read your posting options (allowed privacy levels and interaction settings), and publish the videos you choose. You can remove the app's access in the TikTok app (<i>Settings and privacy → Security → Apps and services permissions</i>). See the <a href="https://www.tiktok.com/legal/privacy-policy">TikTok Privacy Policy</a>.</p>
+
+  <h2>5. Data stored on your computer</h2>
+  <ul>
+    <li><b>Login tokens</b> (access and refresh tokens) and the app credentials you enter: stored in <code>data/accounts/</code> until you click "Disconnect" or delete the folder.</li>
+    <li><b>Imported videos</b>, generated covers and converted files: stored in <code>data/uploads/</code> and <b>automatically deleted after 7 days</b>.</li>
+    <li><b>Your draft text and preferences</b> (title, description, hashtags, selected platforms): stored in your browser's local storage on your computer.</li>
+  </ul>
+  <p>None of this data is shared with us or with any third party other than the platforms you publish to.</p>
+
+  <h2>6. Deleting your data</h2>
+  <ul>
+    <li>Click <b>Disconnect</b> in the app's Accounts tab to delete a platform's login tokens.</li>
+    <li>Delete the <code>data/</code> folder to remove everything the app has stored.</li>
+    <li>Revoke access from <a href="https://security.google.com/settings/security/permissions">Google</a>, Facebook or TikTok settings (see above).</li>
+  </ul>
+  <p>Content you have already published stays on the platforms; delete it there if you wish.</p>
+
+  <h2>7. Children</h2>
+  <p>The app is not intended for children under 13 (or the minimum age required by YouTube, Instagram or TikTok in your country).</p>
+
+  <h2>8. Changes</h2>
+  <p>We may update this policy. Changes are published on this page with a new "Last updated" date.</p>
+
+  <h2>9. Contact</h2>
+  <p>For any question about this policy or your data, open an issue on <a href="https://github.com/Timcat62/tiktok-instagram-youtube-poster/issues">GitHub</a>.</p>
+</main>
+
+<footer>
+  <div class="wrap">
+    <a href="./">Home</a>
+    <a href="terms.html">Terms of Service</a>
+    <a href="https://github.com/Timcat62/tiktok-instagram-youtube-poster/issues">Contact</a>
+  </div>
+</footer>
+</body>
+</html>
