@@ -196,8 +196,14 @@ def publish(path, *, caption, thumb_offset_ms, report) -> dict:
     else:
         r = None
     if r is None or not r.ok:
-        raise RuntimeError(f"Instagram upload failed ({last_error}). Check that your video is an MP4/MOV "
-                           "between 3 s and 15 min, then try again.")
+        detail = ""
+        try:  # the container status usually carries the precise reason (error code + message)
+            st = requests.get(f"{GRAPH}/{cid}", params={"fields": "status_code,status", "access_token": token},
+                              timeout=30).json()
+            detail = f" Container status: {st.get('status_code')} — {st.get('status') or st.get('error', {}).get('message')}"
+        except Exception:  # noqa: BLE001 - best effort diagnostic
+            pass
+        raise RuntimeError(f"Instagram upload failed ({last_error}).{detail}")
 
     report("Instagram is processing…", 0.92)
     deadline = time.time() + 20 * 60
