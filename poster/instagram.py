@@ -174,15 +174,30 @@ def publish(path, *, caption, thumb_offset_ms, report) -> dict:
     }, timeout=60))
     cid = container["id"]
 
-    body = _ProgressFile(path, lambda p: report("Uploading video…", p * 0.9))
-    try:
-        _check(requests.post(f"{RUPLOAD}/{cid}", headers={
-            "Authorization": f"OAuth {token}",
-            "offset": "0",
-            "file_size": str(len(body)),
-        }, data=body, timeout=(30, 3600)))
-    finally:
-        body.close()
+    last_error = None
+    for attempt in range(3):
+        body = _ProgressFile(path, lambda p: report("Uploading video…", p * 0.9))
+        try:
+            r = requests.post(f"{RUPLOAD}/{cid}", headers={
+                "Authorization": f"OAuth {token}",
+                "offset": "0",
+                "file_size": str(len(body)),
+                "Content-Type": "application/octet-stream",
+            }, data=body, timeout=(30, 3600))
+        finally:
+            body.close()
+        if r.ok:
+            break
+        last_error = f"HTTP {r.status_code}: {r.text[:400]}"
+        if r.status_code < 500:
+            break
+        report(f"Upload failed, retrying ({attempt + 1}/3)…", 0.0)
+        time.sleep(5)
+    else:
+        r = None
+    if r is None or not r.ok:
+        raise RuntimeError(f"Instagram upload failed ({last_error}). Check that your video is an MP4/MOV "
+                           "between 3 s and 15 min, then try again.")
 
     report("Instagram is processing…", 0.92)
     deadline = time.time() + 20 * 60

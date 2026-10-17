@@ -15,6 +15,19 @@ REDIRECT_URI = f"{store.BASE_URL}/auth/tiktok/callback/"
 
 MB = 1024 * 1024
 
+_HINTS = {
+    "unaudited_client_can_only_post_to_private_accounts":
+        " → Set your TikTok account to private, or use \"Send as draft\" mode.",
+    "privacy_level_option_mismatch":
+        " → Until your app is audited, choose \"Only me\" as visibility.",
+    "scope_not_authorized":
+        " → Add the video.publish / video.upload scopes to your app, then reconnect TikTok.",
+    "url_ownership_unverified":
+        " → Verify your website URL in the TikTok developer portal (URL properties).",
+    "spam_risk_too_many_posts": " → Daily post limit reached, try again tomorrow.",
+    "spam_risk_user_banned_from_posting": " → This account is currently not allowed to post.",
+}
+
 
 def _check(r: requests.Response) -> dict:
     try:
@@ -24,7 +37,8 @@ def _check(r: requests.Response) -> dict:
         raise RuntimeError(f"Unexpected response from TikTok: {r.text[:300]}")
     err = data.get("error")
     if isinstance(err, dict) and err.get("code") not in (None, "ok"):
-        raise RuntimeError(f"TikTok: {err.get('message') or err.get('code')}")
+        hint = _HINTS.get(err.get("code"), "")
+        raise RuntimeError(f"TikTok [{err.get('code')}]: {err.get('message') or ''}{hint}")
     if isinstance(err, str):  # OAuth error format
         raise RuntimeError(f"TikTok: {data.get('error_description') or err}")
     r.raise_for_status()
