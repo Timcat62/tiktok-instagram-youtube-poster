@@ -121,16 +121,23 @@ def extract_frame(src: Path, t: float, width: int | None = None, mode: str | Non
     return r.stdout
 
 
-def _encode(src: Path, dst: Path, vf: str | None, duration: float, on_progress=None, max_fps: float | None = None) -> Path:
+def _encode(src: Path, dst: Path, vf: str | None, duration: float, on_progress=None, max_fps: float | None = None,
+            add_silence: bool = False) -> Path:
     cmd = [ffmpeg_exe(), "-y", "-hide_banner", "-i", str(src)]
+    if add_silence:
+        # Some platforms reject videos without an audio track: add a silent one.
+        cmd += ["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000",
+                "-map", "0:v:0", "-map", "1:a:0", "-shortest"]
     filters = [vf] if vf else []
     if max_fps:
         filters.append(f"fps={max_fps:g}")
     if filters:
         cmd += ["-vf", ",".join(filters)]
     cmd += [
-        "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p",
-        "-c:a", "aac", "-b:a", "160k", "-ar", "48000",
+        "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p", "-profile:v", "high",
+        "-maxrate", "12M", "-bufsize", "24M",
+        "-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709",
+        "-c:a", "aac", "-b:a", "160k", "-ar", "48000", "-ac", "2",
         "-movflags", "+faststart",
         "-progress", "pipe:1", "-nostats", "-loglevel", "error",
         str(dst),
@@ -175,4 +182,4 @@ def to_compat(src: Path, dst: Path, meta: dict, on_progress=None) -> Path:
     factor = min(1.0, 1920 / max(w, h))
     tw, th = int(w * factor) // 2 * 2, int(h * factor) // 2 * 2
     return _encode(src, dst, f"scale={tw}:{th},setsar=1", meta["duration"], on_progress,
-                   max_fps=60 if meta["fps"] > 60.5 else None)
+                   max_fps=60 if meta["fps"] > 60.5 else None, add_silence=not meta["has_audio"])

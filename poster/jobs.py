@@ -80,22 +80,23 @@ def _prepare(job, opts):
     if "youtube" in platforms:
         files["youtube"] = make_vertical() if horizontal else src
 
-    others = [p for p in platforms if p != "youtube"]
-    if others:
+    def make_compat():
+        dst = folder / "standard.mp4"
+        if not dst.exists():
+            _set(job, "prep", message="Re-encoding to the standard Instagram/TikTok format…", progress=0.0)
+            tmp = folder / "standard.tmp.mp4"
+            video.to_compat(src, tmp, meta, lambda p: _set(job, "prep", progress=p))
+            tmp.replace(dst)
+        return dst
+
+    for p in (p for p in platforms if p != "youtube"):
         if horizontal and opts.get("vertical_all"):
-            other_file = make_vertical()
-        elif video.needs_compat(meta):
-            dst = folder / "compat.mp4"
-            if not dst.exists():
-                _set(job, "prep", message="Re-encoding for Instagram/TikTok compatibility…", progress=0.0)
-                tmp = folder / "compat.tmp.mp4"
-                video.to_compat(src, tmp, meta, lambda p: _set(job, "prep", progress=p))
-                tmp.replace(dst)
-            other_file = dst
+            files[p] = make_vertical()
+        elif p == "instagram" or video.needs_compat(meta):
+            # Instagram's processing is strict (HEVC, HDR, high bitrates often fail): always re-encode.
+            files[p] = make_compat()
         else:
-            other_file = src
-        for p in others:
-            files[p] = other_file
+            files[p] = src
 
     cover_t = max(0.0, min(float(opts.get("cover_t", 0)), max(meta["duration"] - 0.05, 0)))
     cover_path = folder / "cover.jpg"
