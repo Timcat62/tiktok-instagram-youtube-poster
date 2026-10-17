@@ -138,7 +138,7 @@ def _encode(src: Path, dst: Path, vf: str | None, duration: float, on_progress=N
         "-maxrate", "12M", "-bufsize", "24M",
         "-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709",
         "-c:a", "aac", "-b:a", "160k", "-ar", "48000", "-ac", "2",
-        "-movflags", "+faststart",
+        "-fps_mode", "cfr", "-movflags", "+faststart",
         "-progress", "pipe:1", "-nostats", "-loglevel", "error",
         str(dst),
     ]

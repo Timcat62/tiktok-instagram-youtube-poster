@@ -21,7 +21,7 @@
 
 <main class="wrap">
   <h1>Privacy Policy</h1>
-  <p><i>Last updated: October 17, 2026</i></p>
+  <p><i>Last updated: October 17, 2026 (rev. 2)</i></p>
 
   <p>Social Poster ("the app", "we") is a free, open-source application that runs entirely on your own computer. It lets you publish a video to YouTube, Instagram and TikTok. This policy explains which data the app accesses, how it is used and stored, and how you can delete it.</p>
 
@@ -44,7 +44,7 @@
   <p>You can revoke the app's access to your Google account at any time from your <a href="https://security.google.com/settings/security/permissions">Google security settings page</a>.</p>
 
   <h2>3. Instagram / Meta</h2>
-  <p>When you connect Instagram, the app uses Meta's official Instagram Graph API with the permissions <code>instagram_basic</code>, <code>instagram_content_publish</code>, <code>pages_show_list</code>, <code>pages_read_engagement</code> and <code>business_management</code>. They are used only to find the Instagram professional account linked to your Facebook Page (ID and username) and to publish the Reels you choose. You can remove the app's access from your Facebook settings (<i>Settings &amp; privacy → Settings → Business integrations</i>). See the <a href="https://privacycenter.instagram.com/policy">Instagram/Meta Privacy Policy</a>.</p>
+  <p>When you connect Instagram, the app uses Meta's official Instagram Graph API with the permissions <code>instagram_basic</code>, <code>instagram_content_publish</code>, <code>pages_show_list</code>, <code>pages_read_engagement</code> and <code>business_management</code>. They are used only to find the Instagram professional account linked to your Facebook Page (ID and username) and to publish the Reels you choose. To let Instagram fetch the video, the app opens a temporary <b>Cloudflare quick tunnel</b> (a random <code>https://….trycloudflare.com</code> address) that serves only the video being published, under a random unguessable path, and closes it as soon as Instagram has processed the video. The video passes through Cloudflare's network but is not stored by the app anywhere else. See the <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare Privacy Policy</a>. You can remove the app's access from your Facebook settings (<i>Settings &amp; privacy → Settings → Business integrations</i>). See the <a href="https://privacycenter.instagram.com/policy">Instagram/Meta Privacy Policy</a>.</p>
 
   <h2>4. TikTok</h2>
   <p>When you connect TikTok, the app uses TikTok's official Login Kit and Content Posting API with the scopes <code>user.info.basic</code>, <code>video.upload</code> and <code>video.publish</code>. They are used only to display your TikTok nickname and avatar, read your posting options (allowed privacy levels and interaction settings), and publish the videos you choose. You can remove the app's access in the TikTok app (<i>Settings and privacy → Security → Apps and services permissions</i>). See the <a href="https://www.tiktok.com/legal/privacy-policy">TikTok Privacy Policy</a>.</p>

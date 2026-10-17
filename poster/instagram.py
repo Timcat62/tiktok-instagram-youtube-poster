@@ -4,7 +4,7 @@ from urllib.parse import urlencode
 
 import requests
 
-from . import store
+from . import store, tunnel
 
 API_VERSION = "v25.0"
 GRAPH = f"https://graph.facebook.com/{API_VERSION}"
@@ -164,58 +164,75 @@ def _container_status(cid: str, token: str) -> tuple[str | None, str | None]:
     return st.get("status_code"), st.get("status")
 
 
+def _wait_processing(cid: str, token: str, report, timeout: float = 20 * 60, stuck_after: float | None = None) -> None:
+    report("Instagram is processing…", 0.92)
+    started = time.time()
+    while True:
+        code, status = _container_status(cid, token)
+        if code == "FINISHED":
+            return
+        if code in ("ERROR", "EXPIRED"):
+            raise RuntimeError(f"Instagram rejected the video: {status or code}")
+        if stuck_after and time.time() - started > stuck_after:
+            raise RuntimeError(f"Instagram is stuck processing the video ({status or code}).")
+        if time.time() - started > timeout:
+            raise RuntimeError("Instagram is taking too long to process the video (over 20 min).")
+        time.sleep(5)
+
+
+def _publish_from_url(path, ig, token, caption, thumb_offset_ms, report) -> str:
+    """Main method: Instagram downloads the video from a temporary public link."""
+    with tunnel.public_url(path, report=report, timeout=180) as url:
+        report("Creating Reel…", 0.5)
+        cid = _check(requests.post(f"{GRAPH}/{ig}/media", data={
+            "media_type": "REELS",
+            "video_url": url,
+            "caption": caption,
+            "thumb_offset": int(thumb_offset_ms),
+            "share_to_feed": "true",
+            "access_token": token,
+        }, timeout=60))["id"]
+        # Keep the link open until Instagram has finished downloading and processing the file.
+        _wait_processing(cid, token, report)
+    return cid
+
+
+def _publish_resumable(path, ig, token, caption, thumb_offset_ms, report) -> str:
+    """Fallback method: direct upload of the file to rupload.facebook.com."""
+    report("Creating Reel…", 0.0)
+    cid = _check(requests.post(f"{GRAPH}/{ig}/media", data={
+        "media_type": "REELS",
+        "upload_type": "resumable",
+        "caption": caption,
+        "thumb_offset": int(thumb_offset_ms),
+        "access_token": token,
+    }, timeout=60))["id"]
+    body = _ProgressFile(path, lambda p: report("Uploading video…", p * 0.9))
+    try:
+        r = requests.post(f"{RUPLOAD}/{cid}", headers={
+            "Authorization": f"OAuth {token}",
+            "offset": "0",
+            "file_size": str(len(body)),
+        }, data=body, timeout=(30, 3600))
+    finally:
+        body.close()
+    if not r.ok:
+        raise RuntimeError(f"Instagram upload failed (HTTP {r.status_code}: {r.text[:300]})")
+    _wait_processing(cid, token, report, stuck_after=5 * 60)
+    return cid
+
+
 def publish(path, *, caption, thumb_offset_ms, report) -> dict:
     acc = store.load("instagram")
     token, ig = acc.get("token"), (acc.get("account") or {}).get("id")
     if not (token and ig):
         raise RuntimeError("Instagram is not connected.")
 
-    report("Creating Reel…", 0.0)
-    container = _check(requests.post(f"{GRAPH}/{ig}/media", data={
-        "media_type": "REELS",
-        "upload_type": "resumable",
-        "caption": caption,
-        "thumb_offset": int(thumb_offset_ms),
-        "access_token": token,
-    }, timeout=60))
-    cid = container["id"]
-
-    upload_error = None
-    for attempt in range(3):
-        body = _ProgressFile(path, lambda p: report("Uploading video…", p * 0.9))
-        try:
-            r = requests.post(f"{RUPLOAD}/{cid}", headers={
-                "Authorization": f"OAuth {token}",
-                "offset": "0",
-                "file_size": str(len(body)),
-            }, data=body, timeout=(30, 3600))
-        finally:
-            body.close()
-        if r.ok:
-            upload_error = None
-            break
-        upload_error = f"HTTP {r.status_code}: {r.text[:400]}"
-        # rupload sometimes answers 500 although it received the file and processing has started:
-        # only re-send when Instagram says the error is retriable and nothing is being processed.
-        if '"retriable":true' not in r.text.replace(" ", "") or _container_status(cid, token)[0] == "IN_PROGRESS":
-            break
-        report(f"Upload failed, retrying ({attempt + 1}/3)…", 0.0)
-        time.sleep(5)
-
-    report("Instagram is processing…", 0.92)
-    deadline = time.time() + 20 * 60
-    while True:
-        code, status = _container_status(cid, token)
-        if code == "FINISHED":
-            break
-        if code in ("ERROR", "EXPIRED") or (upload_error and code not in ("IN_PROGRESS", "PUBLISHED")):
-            msg = f"Instagram rejected the video: {status or code}"
-            if upload_error:
-                msg += f" (upload response: {upload_error})"
-            raise RuntimeError(msg)
-        if time.time() > deadline:
-            raise RuntimeError("Instagram is taking too long to process the video (over 20 min).")
-        time.sleep(5)
+    try:
+        cid = _publish_from_url(path, ig, token, caption, thumb_offset_ms, report)
+    except tunnel.TunnelError as e:
+        report(f"{e} Trying direct upload…", 0.0)
+        cid = _publish_resumable(path, ig, token, caption, thumb_offset_ms, report)
 
     report("Publishing…", 0.97)
     media = _check(requests.post(f"{GRAPH}/{ig}/media_publish", data={

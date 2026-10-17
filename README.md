@@ -355,12 +355,14 @@ Your draft (description, hashtags) and your choices (ticked platforms, YouTube v
 
 | | YouTube | Instagram | TikTok |
 |---|---|---|---|
-| API | YouTube Data API v3 (`videos.insert`) | Graph API (Reels, resumable upload) | Content Posting API (Direct Post or Inbox) |
+| API | YouTube Data API v3 (`videos.insert`) | Graph API (Reels from a `video_url`, see below) | Content Posting API (Direct Post or Inbox) |
 | Cover | Frame extracted and uploaded as the thumbnail (`thumbnails.set`) | `thumb_offset` (frame position in ms) | `video_cover_timestamp_ms` |
 | Horizontal video | Converted to 1080×1920 → Short | As is (or 9:16 if the option is ticked) | As is (or 9:16 if the option is ticked) |
 | Hashtags | In the description + as tags | In the caption | In the caption |
 
-If a file isn't compatible with Instagram (codec, 4K, over 60 fps, MKV/WEBM container…), it is automatically re-encoded to an H.264 MP4. Imported videos are deleted automatically after 7 days (`data/uploads`).
+**Instagram upload method**: Instagram's direct file upload endpoint often fails with `ProcessingFailedError`. Instead, while publishing, the app opens a temporary **Cloudflare quick tunnel** (free, no account) that serves **only that video**, under a random path, and gives the link to Instagram. The tunnel closes as soon as Instagram has processed the video. The first time, the app downloads the `cloudflared` tool (~50 MB) into `data/bin/`. Opening the link takes 30 to 90 seconds. If the tunnel can't be opened, the app falls back to the direct upload.
+
+The video sent to Instagram is always re-encoded to a strict format (H.264 8-bit, constant frame rate, AAC 48 kHz stereo). If a file isn't compatible with Instagram (codec, 4K, over 60 fps, MKV/WEBM container…), it is automatically re-encoded to an H.264 MP4. Imported videos are deleted automatically after 7 days (`data/uploads`).
 
 ## Troubleshooting
 
@@ -377,6 +379,8 @@ If a file isn't compatible with Instagram (codec, 4K, over 60 fps, MKV/WEBM cont
 | Instagram: "Invalid scopes" | Create a Configuration ID (Instagram step 10). |
 | TikTok: `unaudited_client_can_only_post_to_private_accounts` | Set your TikTok account to private, or use **Send as draft**. |
 | TikTok: `redirect_uri` error | The URI must be exactly `http://localhost:8765/auth/tiktok/callback/` (trailing `/` included), and you must use the client key of the environment (Sandbox or Production) where you added it. |
+| Instagram: "Could not open the temporary Cloudflare link" | Your firewall or antivirus blocks `cloudflared`. Allow `data/bin/cloudflared.exe`, or try another network. |
+| Instagram: stuck on "processing" | Wait up to 5 minutes. If it fails, send the error message in a GitHub issue. |
 | TikTok: URL verification fails | Check that the `tiktok….txt` file opens in your browser at the website URL, then retry. |
 
 ## Customizing the project
@@ -388,6 +392,7 @@ poster/youtube.py   YouTube login + publishing
 poster/instagram.py Instagram login + publishing
 poster/tiktok.py    TikTok login + publishing
 poster/jobs.py      Parallel publishing with progress tracking
+poster/tunnel.py    Temporary public link (Cloudflare) used for Instagram
 static/             Interface (plain HTML/CSS/JS, no framework)
 docs/               Project website: home, privacy policy, terms (GitHub Pages)
 data/               Your settings and tokens (created at launch, ignored by git)
