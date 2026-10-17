@@ -1,4 +1,4 @@
-"""Outils vidéo basés sur ffmpeg : analyse, extraction de frames, conversion verticale."""
+"""ffmpeg-based video tools: probing, frame extraction, vertical conversion."""
 import re
 import shutil
 import subprocess
@@ -10,7 +10,7 @@ SHORT_MAX_SECONDS = 180
 
 VERTICAL_MODES = ("blur", "black", "crop")
 
-# Sous Windows, évite qu'une fenêtre console s'ouvre à chaque appel ffmpeg.
+# On Windows, prevents a console window from popping up on every ffmpeg call.
 _NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 
 
@@ -19,13 +19,13 @@ def ffmpeg_exe() -> str:
     exe = shutil.which("ffmpeg")
     if exe:
         return exe
-    import imageio_ffmpeg  # binaire ffmpeg fourni par pip, aucune installation manuelle
+    import imageio_ffmpeg  # ffmpeg binary shipped through pip, nothing to install manually
 
     return imageio_ffmpeg.get_ffmpeg_exe()
 
 
 def probe(path: Path) -> dict:
-    """Lit les infos de la vidéo (dimensions affichées, durée, codec...)."""
+    """Reads video info (displayed dimensions, duration, codec...)."""
     r = subprocess.run(
         [ffmpeg_exe(), "-hide_banner", "-i", str(path)],
         capture_output=True, text=True, encoding="utf-8", errors="replace",
@@ -42,18 +42,18 @@ def probe(path: Path) -> dict:
         (l for l in out.splitlines() if "Video:" in l and "attached pic" not in l), None
     )
     if not vline:
-        raise ValueError("Aucune piste vidéo détectée dans ce fichier.")
+        raise ValueError("No video track found in this file.")
 
     codec = re.search(r"Video: (\w+)", vline).group(1)
     dims = re.search(r"[ ,](\d{2,5})x(\d{2,5})[ ,\]]", vline)
     if not dims:
-        raise ValueError("Impossible de lire les dimensions de la vidéo.")
+        raise ValueError("Could not read the video dimensions.")
     width, height = int(dims.group(1)), int(dims.group(2))
 
     fps_m = re.search(r"([\d.]+) fps", vline)
     fps = float(fps_m.group(1)) if fps_m else 30.0
 
-    # Les vidéos de téléphone sont souvent stockées en paysage avec une rotation.
+    # Phone videos are often stored in landscape with a rotation flag.
     rot = re.search(r"rotation of (-?[\d.]+) degrees", out) or re.search(r"rotate\s*:\s*(-?\d+)", out)
     if rot and round(abs(float(rot.group(1)))) % 180 == 90:
         width, height = height, width
@@ -81,7 +81,7 @@ def probe(path: Path) -> dict:
 
 
 def vertical_filter(mode: str) -> str:
-    """Filtre ffmpeg qui place une vidéo dans un cadre 9:16 (1080x1920)."""
+    """ffmpeg filter that fits a video into a 9:16 (1080x1920) frame."""
     W, H = SHORT_W, SHORT_H
     if mode == "crop":
         return f"scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},setsar=1"
@@ -90,7 +90,7 @@ def vertical_filter(mode: str) -> str:
             f"scale={W}:{H}:force_original_aspect_ratio=decrease,"
             f"pad={W}:{H}:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1"
         )
-    # Fond flouté : flou calculé en basse résolution puis agrandi (bien plus rapide).
+    # Blurred background: blur computed at low resolution then upscaled (much faster).
     return (
         "split=2[bg][fg];"
         "[bg]scale=270:480:force_original_aspect_ratio=increase,crop=270:480,"
@@ -101,7 +101,7 @@ def vertical_filter(mode: str) -> str:
 
 
 def extract_frame(src: Path, t: float, width: int | None = None, mode: str | None = None) -> bytes:
-    """Renvoie une frame JPEG à l'instant t (secondes)."""
+    """Returns a JPEG frame at time t (seconds)."""
     filters = []
     if mode in VERTICAL_MODES:
         filters.append(vertical_filter(mode))
@@ -114,10 +114,10 @@ def extract_frame(src: Path, t: float, width: int | None = None, mode: str | Non
     cmd += ["-q:v", "3", "-f", "image2pipe", "-vcodec", "mjpeg", "-"]
     r = subprocess.run(cmd, capture_output=True, creationflags=_NO_WINDOW)
     if r.returncode != 0 or not r.stdout:
-        # Au-delà de la fin (dernière frame), on recule un peu.
+        # Past the end (last frame): step back a little.
         if t > 0.2:
             return extract_frame(src, t - 0.2, width, mode)
-        raise RuntimeError(r.stderr.decode("utf-8", "replace") or "Extraction de frame impossible")
+        raise RuntimeError(r.stderr.decode("utf-8", "replace") or "Could not extract frame")
     return r.stdout
 
 
@@ -148,18 +148,18 @@ def _encode(src: Path, dst: Path, vf: str | None, duration: float, on_progress=N
         proc.wait()
     if proc.returncode != 0:
         err = log_path.read_text(encoding="utf-8", errors="replace").strip()
-        raise RuntimeError(f"Échec de la conversion ffmpeg : {err[-500:]}")
+        raise RuntimeError(f"ffmpeg conversion failed: {err[-500:]}")
     return dst
 
 
 def to_vertical(src: Path, dst: Path, mode: str, meta: dict, on_progress=None) -> Path:
-    """Convertit une vidéo (horizontale) en 1080x1920 pour qu'elle soit reconnue comme Short."""
+    """Converts a (horizontal) video to 1080x1920 so it is recognized as a Short."""
     return _encode(src, dst, vertical_filter(mode), meta["duration"], on_progress,
                    max_fps=60 if meta["fps"] > 60.5 else None)
 
 
 def needs_compat(meta: dict) -> bool:
-    """Instagram est le plus exigeant : H.264/HEVC en MP4/MOV, 1920 px max, 60 i/s max."""
+    """Instagram is the strictest: H.264/HEVC in MP4/MOV, 1920 px max, 60 fps max."""
     container_ok = any(c in meta["container"] for c in ("mp4", "mov"))
     return (
         meta["codec"] not in ("h264", "hevc")
@@ -170,7 +170,7 @@ def needs_compat(meta: dict) -> bool:
 
 
 def to_compat(src: Path, dst: Path, meta: dict, on_progress=None) -> Path:
-    """Ré-encode en MP4 H.264 compatible partout, en réduisant à 1920 px max si besoin."""
+    """Re-encodes to an H.264 MP4 that works everywhere, downscaling to 1920 px max if needed."""
     w, h = meta["width"], meta["height"]
     factor = min(1.0, 1920 / max(w, h))
     tw, th = int(w * factor) // 2 * 2, int(h * factor) // 2 * 2

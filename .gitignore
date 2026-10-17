@@ -1,4 +1,4 @@
-# Données locales : jetons de connexion, secrets, vidéos importées. NE JAMAIS VERSIONNER.
+# Local data: login tokens, secrets, imported videos. NEVER COMMIT.
 data/
 client_secret*.json
 
@@ -8,7 +8,7 @@ venv/
 __pycache__/
 *.pyc
 
-# Divers
+# Misc
 .DS_Store
 Thumbs.db
 .vscode/

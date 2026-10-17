@@ -7,10 +7,10 @@ const PLATFORMS = ["youtube", "instagram", "tiktok"];
 const LABELS = { youtube: "YouTube", instagram: "Instagram", tiktok: "TikTok" };
 const LOGOS = { youtube: ["yt", "▶"], instagram: ["ig", "◎"], tiktok: ["tt", "♪"] };
 const PRIVACY_LABELS = {
-  PUBLIC_TO_EVERYONE: "Tout le monde",
-  MUTUAL_FOLLOW_FRIENDS: "Amis",
-  FOLLOWER_OF_CREATOR: "Abonnés",
-  SELF_ONLY: "Moi uniquement",
+  PUBLIC_TO_EVERYONE: "Everyone",
+  MUTUAL_FOLLOW_FRIENDS: "Friends",
+  FOLLOWER_OF_CREATOR: "Followers",
+  SELF_ONLY: "Only me",
 };
 
 const state = {
@@ -21,14 +21,14 @@ const state = {
   creatorInfo: null,
 };
 
-// ------------------------------------------------------------------ utilitaires
+// ------------------------------------------------------------------ helpers
 
 const storage = {
   get(key, fallback) {
     try { const v = localStorage.getItem(key); return v === null ? fallback : JSON.parse(v); } catch { return fallback; }
   },
   set(key, value) {
-    try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* stockage indisponible */ }
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* storage unavailable */ }
   },
 };
 
@@ -42,8 +42,8 @@ async function api(path, options = {}) {
   }
   const res = await fetch(path, opts);
   let data;
-  try { data = await res.json(); } catch { throw new Error(`Erreur serveur (${res.status})`); }
-  if (!data.ok) throw new Error(data.error || "Erreur inconnue");
+  try { data = await res.json(); } catch { throw new Error(`Server error (${res.status})`); }
+  if (!data.ok) throw new Error(data.error || "Unknown error");
   return data;
 }
 
@@ -63,15 +63,15 @@ function fmtTime(t) {
 }
 
 function fmtSize(bytes) {
-  if (bytes > 1e9) return (bytes / 1e9).toFixed(2) + " Go";
-  return (bytes / 1e6).toFixed(1) + " Mo";
+  if (bytes > 1e9) return (bytes / 1e9).toFixed(2) + " GB";
+  return (bytes / 1e6).toFixed(1) + " MB";
 }
 
 function escapeHtml(s) {
   return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 
-// ------------------------------------------------------------------ onglets
+// ------------------------------------------------------------------ tabs
 
 function showTab(name) {
   $$(".tab").forEach((b) => b.classList.toggle("active", b.dataset.tab === name));
@@ -85,7 +85,7 @@ document.addEventListener("click", (e) => {
   if (link) { e.preventDefault(); showTab(link.dataset.goto); }
 });
 
-// ------------------------------------------------------------------ statut des comptes
+// ------------------------------------------------------------------ account status
 
 let statusPoll;
 async function loadStatus() {
@@ -107,33 +107,33 @@ function renderAccounts() {
 
   // YouTube
   const yt = s.youtube;
-  setStatus("youtube", yt.connected ? `Connecté · ${yt.account}` : "Non connecté", yt.connected ? "on" : "");
-  $(".yt-client-state").textContent = yt.configured ? "✓ client_secret.json importé" : "";
+  setStatus("youtube", yt.connected ? `Connected · ${yt.account}` : "Not connected", yt.connected ? "on" : "");
+  $(".yt-client-state").textContent = yt.configured ? "✓ client_secret.json imported" : "";
   $("#yt-connect").disabled = !yt.configured || yt.auth_running;
-  $("#yt-connect").textContent = yt.connected ? "Reconnecter" : "Connecter ma chaîne";
+  $("#yt-connect").textContent = yt.connected ? "Reconnect" : "Connect my channel";
   $(".yt-wait").classList.toggle("hidden", !yt.auth_running);
   if (yt.auth_error && !yt.auth_running && state.lastYtError !== yt.auth_error) {
     state.lastYtError = yt.auth_error;
-    toast(`YouTube : ${yt.auth_error}`, true);
+    toast(`YouTube: ${yt.auth_error}`, true);
   }
   $('#acc-youtube .disconnect').classList.toggle("hidden", !yt.connected);
 
   // Instagram
   const ig = s.instagram;
-  let igText = "Non connecté", igCls = "";
+  let igText = "Not connected", igCls = "";
   if (ig.connected) {
-    igText = `Connecté · @${ig.account}`;
+    igText = `Connected · @${ig.account}`;
     igCls = "on";
   } else if (ig.expired) {
-    igText = "Connexion expirée";
+    igText = "Login expired";
     igCls = "bad";
   }
   setStatus("instagram", igText, igCls);
   $("#ig-redirect").textContent = s.redirects.instagram;
   if (ig.app_id && !$("#ig-app-id").value) $("#ig-app-id").value = ig.app_id;
-  if (ig.configured && !$("#ig-app-secret").value) $("#ig-app-secret").placeholder = "App Secret (enregistré)";
+  if (ig.configured && !$("#ig-app-secret").value) $("#ig-app-secret").placeholder = "App Secret (saved)";
   $("#ig-connect").classList.toggle("disabled", !ig.configured);
-  $("#ig-connect").textContent = ig.connected ? "Reconnecter" : "Connecter avec Facebook";
+  $("#ig-connect").textContent = ig.connected ? "Reconnect" : "Connect with Facebook";
   $('#acc-instagram .disconnect').classList.toggle("hidden", !(ig.connected || ig.expired));
   const sel = $("#ig-account-select");
   $(".ig-accounts").classList.toggle("hidden", !(ig.accounts && ig.accounts.length > 1));
@@ -142,17 +142,17 @@ function renderAccounts() {
     .join("");
   if (ig.connected && ig.expires_at) {
     const days = Math.round((ig.expires_at * 1000 - Date.now()) / 86400000);
-    if (days < 10) setStatus("instagram", `@${ig.account} · expire dans ${days} j`, "bad");
+    if (days < 10) setStatus("instagram", `@${ig.account} · expires in ${days} d`, "bad");
   }
 
   // TikTok
   const tt = s.tiktok;
-  setStatus("tiktok", tt.connected ? `Connecté · ${tt.account}` : "Non connecté", tt.connected ? "on" : "");
+  setStatus("tiktok", tt.connected ? `Connected · ${tt.account}` : "Not connected", tt.connected ? "on" : "");
   $("#tt-redirect").textContent = s.redirects.tiktok;
   if (tt.client_key && !$("#tt-client-key").value) $("#tt-client-key").value = tt.client_key;
-  if (tt.configured && !$("#tt-client-secret").value) $("#tt-client-secret").placeholder = "Client secret (enregistré)";
+  if (tt.configured && !$("#tt-client-secret").value) $("#tt-client-secret").placeholder = "Client secret (saved)";
   $("#tt-connect").classList.toggle("disabled", !tt.configured);
-  $("#tt-connect").textContent = tt.connected ? "Reconnecter" : "Connecter TikTok";
+  $("#tt-connect").textContent = tt.connected ? "Reconnect" : "Connect TikTok";
   $('#acc-tiktok .disconnect').classList.toggle("hidden", !tt.connected);
 
   const missing = PLATFORMS.filter((p) => !s[p].connected).length;
@@ -175,7 +175,7 @@ function renderPlatforms() {
     cb.dataset.init = "1";
     box.classList.toggle("off", !connected);
     box.classList.toggle("checked", cb.checked);
-    $(".pf-account", box).textContent = connected ? (p === "instagram" ? `@${s[p].account}` : s[p].account) : "non connecté";
+    $(".pf-account", box).textContent = connected ? (p === "instagram" ? `@${s[p].account}` : s[p].account) : "not connected";
     if (!connected) anyOff = true;
   }
   $("#no-account-hint").classList.toggle("hidden", !anyOff);
@@ -191,7 +191,7 @@ function updatePublishButton() {
   const n = selectedPlatforms().length;
   const btn = $("#publish-btn");
   btn.disabled = !state.video || n === 0;
-  btn.textContent = n ? `Publier sur ${selectedPlatforms().map((p) => LABELS[p]).join(", ")}` : "Coche au moins un réseau";
+  btn.textContent = n ? `Publish to ${selectedPlatforms().map((p) => LABELS[p]).join(", ")}` : "Select at least one platform";
 }
 
 $$(".pf-check").forEach((cb) =>
@@ -222,7 +222,7 @@ async function loadCreatorInfo() {
     if (info.creator_nickname) $('.platform[data-platform="tiktok"] .pf-account').textContent = info.creator_nickname;
     updateWarnings();
   } catch (e) {
-    toast(`TikTok : ${e.message}`, true);
+    toast(`TikTok: ${e.message}`, true);
   } finally {
     state.creatorInfoLoading = false;
   }
@@ -240,7 +240,7 @@ $("#yt-privacy").addEventListener("change", (e) => storage.set("yt-privacy", e.t
 $("#tt-mode").value = storage.get("tt-mode", "direct");
 $("#tt-mode").dispatchEvent(new Event("change"));
 
-// ------------------------------------------------------------------ import vidéo
+// ------------------------------------------------------------------ video import
 
 const dropzone = $("#dropzone");
 const fileInput = $("#file-input");
@@ -269,11 +269,11 @@ function uploadVideo(file) {
     bar.classList.add("hidden");
     fileInput.value = "";
     let data;
-    try { data = JSON.parse(xhr.responseText); } catch { data = { ok: false, error: `Erreur serveur (${xhr.status})` }; }
+    try { data = JSON.parse(xhr.responseText); } catch { data = { ok: false, error: `Server error (${xhr.status})` }; }
     if (!data.ok) return toast(data.error, true);
     loadVideo(data.video);
   };
-  xhr.onerror = () => { bar.classList.add("hidden"); toast("Envoi impossible : le serveur est-il lancé ?", true); };
+  xhr.onerror = () => { bar.classList.add("hidden"); toast("Upload failed: is the server running?", true); };
   xhr.send(form);
 }
 
@@ -283,7 +283,7 @@ function loadVideo(v) {
   $("#job").classList.add("hidden");
   $("#editor").classList.remove("hidden");
   $("#video-name").textContent = v.filename;
-  const orient = { horizontal: "Horizontale", vertical: "Verticale", square: "Carrée" }[v.orientation];
+  const orient = { horizontal: "Horizontal", vertical: "Vertical", square: "Square" }[v.orientation];
   $("#video-meta").innerHTML = [orient, `${v.width}×${v.height}`, fmtTime(v.duration).replace(/\.\d+$/, ""), fmtSize(v.size)]
     .map((c) => `<span class="chip">${c}</span>`).join("");
 
@@ -308,12 +308,12 @@ function resetToUpload() {
   updatePublishButton();
 }
 
-// ------------------------------------------------------------------ choix de la cover
+// ------------------------------------------------------------------ cover picker
 
 const frameUrl = (t, w, mode) =>
   `/api/videos/${state.video.id}/frame?t=${t.toFixed(3)}&w=${w}${mode ? `&mode=${mode}` : ""}`;
 
-// Charge une seule image à la fois et saute directement à la dernière demandée.
+// Loads one image at a time and jumps straight to the latest one requested.
 function lazyImage(img, spinner) {
   let loading = false, next = null;
   const load = (url) => {
@@ -391,20 +391,20 @@ function updateWarnings() {
   const warns = [];
   const sel = selectedPlatforms();
   if (sel.includes("youtube") && v.duration > 180)
-    warns.push("Vidéo de plus de 3 minutes : YouTube la publiera comme une vidéo classique, pas comme un Short.");
+    warns.push("Video longer than 3 minutes: YouTube will publish it as a regular video, not a Short.");
   if (sel.includes("instagram") && v.duration > 15 * 60)
-    warns.push("Instagram n'accepte pas les Reels de plus de 15 minutes via l'API.");
+    warns.push("Instagram doesn't accept Reels longer than 15 minutes through the API.");
   if (sel.includes("instagram") && v.duration < 3)
-    warns.push("Instagram demande des Reels d'au moins 3 secondes.");
+    warns.push("Instagram requires Reels to be at least 3 seconds long.");
   const max = state.creatorInfo?.max_video_post_duration_sec;
   if (sel.includes("tiktok") && max && v.duration > max)
-    warns.push(`Ton compte TikTok accepte au maximum ${max} s de vidéo.`);
+    warns.push(`Your TikTok account accepts videos up to ${max} s.`);
   const el = $("#duration-warning");
   el.innerHTML = warns.map(escapeHtml).join("<br>");
   el.classList.toggle("hidden", warns.length === 0);
 }
 
-// ------------------------------------------------------------------ textes
+// ------------------------------------------------------------------ text
 
 function parseHashtags(raw) {
   const seen = new Set(), out = [];
@@ -428,14 +428,14 @@ function updateTexts() {
   const dc = $("#desc-count");
   dc.textContent = `${caption.length}/2200`;
   dc.classList.toggle("over", caption.length > 2200);
-  dc.title = "Instagram et TikTok limitent la légende (description + hashtags) à 2200 caractères";
+  dc.title = "Instagram and TikTok limit the caption (description + hashtags) to 2200 characters";
   const tags = parseHashtags($("#hashtags").value);
   const tc = $("#tags-count");
   tc.textContent = tags.length ? `${tags.length}/30` : "";
   tc.classList.toggle("over", tags.length > 30);
-  tc.title = "Instagram accepte 30 hashtags maximum";
+  tc.title = "Instagram accepts at most 30 hashtags";
   $("#tags-preview").innerHTML = tags.map((t) => `<span>${escapeHtml(t)}</span>`).join("");
-  $("#caption-preview").textContent = caption || "(vide)";
+  $("#caption-preview").textContent = caption || "(empty)";
   storage.set("draft", { title, description: $("#description").value, hashtags: $("#hashtags").value });
 }
 
@@ -448,17 +448,17 @@ function updateTexts() {
 ["#title", "#description", "#hashtags"].forEach((s) => $(s).addEventListener("input", updateTexts));
 updateTexts();
 
-// ------------------------------------------------------------------ publication
+// ------------------------------------------------------------------ publishing
 
 $("#publish-btn").addEventListener("click", async () => {
   const platforms = selectedPlatforms();
   const caption = buildCaption();
   if (!$("#description").value.trim() && !$("#title").value.trim() && platforms.includes("youtube"))
-    return toast("Ajoute au moins un titre ou une description (YouTube en a besoin).", true);
+    return toast("Add at least a title or a description (YouTube needs one).", true);
   if (caption.length > 2200 && platforms.some((p) => p !== "youtube"))
-    return toast("La légende dépasse 2200 caractères (limite Instagram/TikTok).", true);
+    return toast("The caption is over 2200 characters (Instagram/TikTok limit).", true);
   if (parseHashtags($("#hashtags").value).length > 30 && platforms.includes("instagram"))
-    return toast("Instagram accepte 30 hashtags maximum.", true);
+    return toast("Instagram accepts at most 30 hashtags.", true);
 
   const body = {
     video_id: state.video.id,
@@ -485,7 +485,7 @@ $("#publish-btn").addEventListener("click", async () => {
     $("#editor").classList.add("hidden");
     $("#job").classList.remove("hidden");
     $("#job-actions").classList.add("hidden");
-    $("#job h2").textContent = "Publication en cours…";
+    $("#job h2").textContent = "Publishing…";
     pollJob();
   } catch (e) {
     toast(e.message, true);
@@ -498,7 +498,7 @@ function jobRow(label, logo, s) {
   const pct = Math.round((s.progress || 0) * 100);
   const logoHtml = logo ? `<span class="pf-logo ${logo[0]}">${logo[1]}</span>` : "⚙️";
   let msg = escapeHtml(s.message);
-  if (s.state === "done" && s.url) msg += ` — <a href="${escapeHtml(s.url)}" target="_blank" rel="noopener">voir</a>`;
+  if (s.state === "done" && s.url) msg += ` — <a href="${escapeHtml(s.url)}" target="_blank" rel="noopener">view</a>`;
   if (s.state === "error") msg = "✗ " + msg;
   if (s.state === "done") msg = "✓ " + msg;
   return `<div class="job-row ${s.state}">
@@ -519,11 +519,11 @@ async function pollJob() {
     toast(e.message, true);
     return;
   }
-  $("#job-prep").outerHTML = `<div id="job-prep">${jobRow("Préparation", null, job.prep)}</div>`;
+  $("#job-prep").outerHTML = `<div id="job-prep">${jobRow("Preparation", null, job.prep)}</div>`;
   $("#job-rows").innerHTML = Object.entries(job.platforms).map(([p, s]) => jobRow(LABELS[p], LOGOS[p], s)).join("");
   if (job.done) {
     const failed = Object.values(job.platforms).filter((s) => s.state === "error").length;
-    $("#job h2").textContent = failed ? `Terminé avec ${failed} erreur${failed > 1 ? "s" : ""}` : "Publication terminée 🎉";
+    $("#job h2").textContent = failed ? `Finished with ${failed} error${failed > 1 ? "s" : ""}` : "All published 🎉";
     $("#job-actions").classList.remove("hidden");
     return;
   }
@@ -542,7 +542,7 @@ $("#back-edit").addEventListener("click", () => {
   $("#editor").classList.remove("hidden");
 });
 
-// ------------------------------------------------------------------ actions des comptes
+// ------------------------------------------------------------------ account actions
 
 $("#yt-client").addEventListener("change", async (e) => {
   const f = e.target.files[0];
@@ -551,7 +551,7 @@ $("#yt-client").addEventListener("change", async (e) => {
   form.append("file", f);
   try {
     await api("/api/accounts/youtube/client", { method: "POST", body: form });
-    toast("Fichier client Google importé ✓");
+    toast("Google client file imported ✓");
     loadStatus();
   } catch (err) {
     toast(err.message, true);
@@ -574,7 +574,7 @@ $("#ig-save").addEventListener("click", async () => {
       json: { app_id: $("#ig-app-id").value, app_secret: $("#ig-app-secret").value },
     });
     $("#ig-app-secret").value = "";
-    toast("Identifiants Meta enregistrés ✓");
+    toast("Meta credentials saved ✓");
     loadStatus();
   } catch (e) {
     toast(e.message, true);
@@ -587,7 +587,7 @@ $("#ig-token-save").addEventListener("click", async () => {
   try {
     await api("/api/accounts/instagram/token", { json: { token: $("#ig-token").value } });
     $("#ig-token").value = "";
-    toast("Instagram connecté ✓");
+    toast("Instagram connected ✓");
     loadStatus();
   } catch (e) {
     toast(e.message, true);
@@ -611,7 +611,7 @@ $("#tt-save").addEventListener("click", async () => {
       json: { client_key: $("#tt-client-key").value, client_secret: $("#tt-client-secret").value },
     });
     $("#tt-client-secret").value = "";
-    toast("Identifiants TikTok enregistrés ✓");
+    toast("TikTok credentials saved ✓");
     loadStatus();
   } catch (e) {
     toast(e.message, true);
@@ -621,7 +621,7 @@ $("#tt-save").addEventListener("click", async () => {
 $$(".disconnect").forEach((b) =>
   b.addEventListener("click", async () => {
     const p = b.dataset.platform;
-    if (!confirm(`Déconnecter ${LABELS[p]} ?`)) return;
+    if (!confirm(`Disconnect ${LABELS[p]}?`)) return;
     try {
       await api(`/api/accounts/${p}/disconnect`, { method: "POST" });
       if (p === "tiktok") state.creatorInfo = null;
@@ -636,17 +636,17 @@ $$(".copy").forEach((el) =>
   el.addEventListener("click", async () => {
     try {
       await navigator.clipboard.writeText(el.textContent);
-      toast("Copié ✓");
-    } catch { /* presse-papiers indisponible */ }
+      toast("Copied ✓");
+    } catch { /* clipboard unavailable */ }
   })
 );
 
-// ------------------------------------------------------------------ démarrage
+// ------------------------------------------------------------------ startup
 
 (async function init() {
   const params = new URLSearchParams(location.search);
-  if (params.get("connected")) toast(`${LABELS[params.get("connected")] || "Compte"} connecté ✓`);
-  if (params.get("error")) toast(`${LABELS[params.get("platform")] || "Connexion"} : ${params.get("error")}`, true);
+  if (params.get("connected")) toast(`${LABELS[params.get("connected")] || "Account"} connected ✓`);
+  if (params.get("error")) toast(`${LABELS[params.get("platform")] || "Login"}: ${params.get("error")}`, true);
   if (params.toString()) history.replaceState(null, "", location.pathname + location.hash);
 
   showTab(location.hash === "#accounts" ? "accounts" : "publish");

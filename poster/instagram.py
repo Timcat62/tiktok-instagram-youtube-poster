@@ -1,4 +1,4 @@
-"""Publication de Reels Instagram via l'API Graph (connexion Facebook, envoi direct du fichier local)."""
+"""Instagram Reels publishing via the Graph API (Facebook Login, direct upload of the local file)."""
 import time
 from urllib.parse import urlencode
 
@@ -24,11 +24,11 @@ def _check(r: requests.Response) -> dict:
         data = r.json()
     except ValueError:
         r.raise_for_status()
-        raise RuntimeError(f"Réponse inattendue d'Instagram : {r.text[:300]}")
+        raise RuntimeError(f"Unexpected response from Instagram: {r.text[:300]}")
     if isinstance(data, dict) and "error" in data:
         err = data["error"]
         msg = err.get("error_user_msg") or err.get("message") or str(err)
-        raise RuntimeError(f"Instagram : {msg}")
+        raise RuntimeError(f"Instagram: {msg}")
     r.raise_for_status()
     return data
 
@@ -40,7 +40,7 @@ def set_app(app_id: str, app_secret: str) -> None:
 def auth_url(state: str) -> str:
     acc = store.load("instagram")
     if not acc.get("app_id"):
-        raise ValueError("Renseigne d'abord l'App ID et l'App Secret de ton app Meta.")
+        raise ValueError("Enter your Meta app's App ID and App Secret first.")
     return f"https://www.facebook.com/{API_VERSION}/dialog/oauth?" + urlencode({
         "client_id": acc["app_id"],
         "redirect_uri": REDIRECT_URI,
@@ -82,9 +82,9 @@ def connect_with_token(token: str) -> None:
     accounts = _discover(token)
     if not accounts:
         raise RuntimeError(
-            "Aucun compte Instagram professionnel trouvé. Vérifie que ton compte Instagram est en mode "
-            "Professionnel (Créateur ou Entreprise), qu'il est lié à une Page Facebook, et que tu as "
-            "autorisé cette Page pendant la connexion."
+            "No professional Instagram account found. Make sure your Instagram account is "
+            "Professional (Creator or Business), linked to a Facebook Page, and that you "
+            "selected that Page during login."
         )
     store.update(
         "instagram",
@@ -112,7 +112,7 @@ def select_account(ig_id: str) -> None:
         if a["id"] == ig_id:
             store.update("instagram", account=a)
             return
-    raise ValueError("Compte introuvable.")
+    raise ValueError("Account not found.")
 
 
 def status() -> dict:
@@ -131,7 +131,7 @@ def status() -> dict:
 
 
 class _ProgressFile:
-    """Fichier lu par blocs qui remonte la progression de l'envoi."""
+    """File read in blocks that reports upload progress."""
 
     def __init__(self, path, on_progress):
         self._f = open(path, "rb")
@@ -156,9 +156,9 @@ def publish(path, *, caption, thumb_offset_ms, report) -> dict:
     acc = store.load("instagram")
     token, ig = acc.get("token"), (acc.get("account") or {}).get("id")
     if not (token and ig):
-        raise RuntimeError("Instagram n'est pas connecté.")
+        raise RuntimeError("Instagram is not connected.")
 
-    report("Création du Reel…", 0.0)
+    report("Creating Reel…", 0.0)
     container = _check(requests.post(f"{GRAPH}/{ig}/media", data={
         "media_type": "REELS",
         "upload_type": "resumable",
@@ -168,7 +168,7 @@ def publish(path, *, caption, thumb_offset_ms, report) -> dict:
     }, timeout=60))
     cid = container["id"]
 
-    body = _ProgressFile(path, lambda p: report("Envoi de la vidéo…", p * 0.9))
+    body = _ProgressFile(path, lambda p: report("Uploading video…", p * 0.9))
     try:
         _check(requests.post(f"{RUPLOAD}/{cid}", headers={
             "Authorization": f"OAuth {token}",
@@ -178,7 +178,7 @@ def publish(path, *, caption, thumb_offset_ms, report) -> dict:
     finally:
         body.close()
 
-    report("Traitement par Instagram…", 0.92)
+    report("Instagram is processing…", 0.92)
     deadline = time.time() + 20 * 60
     while True:
         st = _check(requests.get(f"{GRAPH}/{cid}", params={
@@ -187,18 +187,18 @@ def publish(path, *, caption, thumb_offset_ms, report) -> dict:
         if code == "FINISHED":
             break
         if code in ("ERROR", "EXPIRED"):
-            raise RuntimeError(f"Instagram a refusé la vidéo : {st.get('status') or code}")
+            raise RuntimeError(f"Instagram rejected the video: {st.get('status') or code}")
         if time.time() > deadline:
-            raise RuntimeError("Instagram met trop de temps à traiter la vidéo (plus de 20 min).")
+            raise RuntimeError("Instagram is taking too long to process the video (over 20 min).")
         time.sleep(5)
 
-    report("Publication…", 0.97)
+    report("Publishing…", 0.97)
     media = _check(requests.post(f"{GRAPH}/{ig}/media_publish", data={
         "creation_id": cid, "access_token": token}, timeout=60))
     url = None
     try:
         url = _check(requests.get(f"{GRAPH}/{media['id']}", params={
             "fields": "permalink", "access_token": token}, timeout=30)).get("permalink")
-    except Exception:  # noqa: BLE001 - le lien est un bonus, la publication a réussi
+    except Exception:  # noqa: BLE001 - the link is a bonus, publishing succeeded
         pass
     return {"url": url or f"https://www.instagram.com/{acc['account'].get('username', '')}/", "warning": None}

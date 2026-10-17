@@ -1,4 +1,4 @@
-"""Exécution des publications en arrière-plan, avec suivi de progression par plateforme."""
+"""Runs publications in the background, with per-platform progress tracking."""
 import threading
 import time
 import traceback
@@ -34,8 +34,8 @@ def start(opts: dict) -> str:
         "id": job_id,
         "created": time.time(),
         "done": False,
-        "prep": {"state": "running", "message": "Préparation…", "progress": 0.0},
-        "platforms": {p: {"state": "waiting", "message": "En attente", "progress": 0.0, "url": None, "warning": None}
+        "prep": {"state": "running", "message": "Preparing…", "progress": 0.0},
+        "platforms": {p: {"state": "waiting", "message": "Waiting", "progress": 0.0, "url": None, "warning": None}
                       for p in opts["platforms"]},
     }
     with _lock:
@@ -61,7 +61,7 @@ def _prepare(job, opts):
         if vertical_file is None:
             dst = folder / f"vertical_{mode}.mp4"
             if not dst.exists():
-                _set(job, "prep", message="Conversion au format vertical 9:16…", progress=0.0)
+                _set(job, "prep", message="Converting to vertical 9:16…", progress=0.0)
                 tmp = folder / f"vertical_{mode}.tmp.mp4"
                 video.to_vertical(src, tmp, mode, meta, lambda p: _set(job, "prep", progress=p))
                 tmp.replace(dst)
@@ -78,7 +78,7 @@ def _prepare(job, opts):
         elif video.needs_compat(meta):
             dst = folder / "compat.mp4"
             if not dst.exists():
-                _set(job, "prep", message="Ré-encodage pour compatibilité Instagram/TikTok…", progress=0.0)
+                _set(job, "prep", message="Re-encoding for Instagram/TikTok compatibility…", progress=0.0)
                 tmp = folder / "compat.tmp.mp4"
                 video.to_compat(src, tmp, meta, lambda p: _set(job, "prep", progress=p))
                 tmp.replace(dst)
@@ -100,7 +100,7 @@ def _publish_one(job, platform, file, opts, meta, cover_t, cover_path):
     def report(message, progress):
         _set(job, platform, message=message, progress=round(float(progress), 3))
 
-    _set(job, platform, state="running", message="Démarrage…")
+    _set(job, platform, state="running", message="Starting…")
     caption = build_caption(opts.get("description", ""), opts.get("hashtags", []))
     try:
         if platform == "youtube":
@@ -124,10 +124,10 @@ def _publish_one(job, platform, file, opts, meta, cover_t, cover_path):
                 report=report,
             )
         else:
-            raise RuntimeError("Plateforme inconnue")
+            raise RuntimeError("Unknown platform")
         _set(job, platform, state="done", progress=1.0, url=res.get("url"), warning=res.get("warning"),
-             message=res.get("message") or "Publiée !")
-    except Exception as e:  # noqa: BLE001 - chaque plateforme échoue indépendamment
+             message=res.get("message") or "Published!")
+    except Exception as e:  # noqa: BLE001 - each platform fails independently
         traceback.print_exc()
         _set(job, platform, state="error", message=str(e) or e.__class__.__name__)
 
@@ -135,12 +135,12 @@ def _publish_one(job, platform, file, opts, meta, cover_t, cover_path):
 def _run(job, opts):
     try:
         files, meta, cover_t, cover_path = _prepare(job, opts)
-        _set(job, "prep", state="done", message="Vidéo prête", progress=1.0)
+        _set(job, "prep", state="done", message="Video ready", progress=1.0)
     except Exception as e:  # noqa: BLE001
         traceback.print_exc()
         _set(job, "prep", state="error", message=str(e))
         for p in opts["platforms"]:
-            _set(job, p, state="error", message="Préparation de la vidéo impossible")
+            _set(job, p, state="error", message="Could not prepare the video")
         job["done"] = True
         return
 

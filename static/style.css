@@ -48,7 +48,7 @@ code { background: var(--surface-2); padding: 1px 6px; border-radius: 6px; font-
 .small { font-size: .85em; }
 .mono { font-family: ui-monospace, Consolas, monospace; font-size: .9em; min-width: 72px; text-align: right; }
 
-/* ---------- Barre du haut ---------- */
+/* ---------- Top bar ---------- */
 .topbar {
   position: sticky; top: 0; z-index: 10;
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
@@ -65,7 +65,7 @@ code { background: var(--surface-2); padding: 1px 6px; border-radius: 6px; font-
 
 main { max-width: 1180px; margin: 0 auto; padding: 24px 16px 64px; }
 
-/* ---------- Cartes / formulaires ---------- */
+/* ---------- Cards / forms ---------- */
 .card {
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
   padding: 20px; box-shadow: var(--shadow);
@@ -160,14 +160,14 @@ select { width: auto; padding: 6px 10px; }
 .alert { border-radius: 10px; padding: 10px 12px; margin-top: 14px; font-size: 14px; }
 .alert.warn { background: var(--warn-bg); color: var(--warn); }
 
-/* ---------- Texte ---------- */
+/* ---------- Text ---------- */
 .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .tags span { background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); border-radius: 99px; padding: 1px 9px; font-size: 13px; }
 .caption-preview { margin-top: 12px; font-size: 14px; }
 .caption-preview summary { cursor: pointer; color: var(--muted); }
 .caption-preview pre { white-space: pre-wrap; font: inherit; background: var(--surface-2); padding: 10px; border-radius: 10px; margin: 8px 0 0; }
 
-/* ---------- Réseaux ---------- */
+/* ---------- Platforms ---------- */
 .platforms { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
 .platform { border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
 .platform.off { opacity: .5; }
@@ -188,7 +188,7 @@ select { width: auto; padding: 6px 10px; }
 .pf-logo.ig { background: var(--ig); }
 .pf-logo.tt { background: var(--tt); border: 1px solid #333; }
 
-/* ---------- Suivi de publication ---------- */
+/* ---------- Publishing progress ---------- */
 #job { margin-top: 20px; }
 .job-row { display: grid; grid-template-columns: 150px 1fr; gap: 6px 14px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
 .job-row:last-child { border-bottom: 0; }
@@ -202,7 +202,7 @@ select { width: auto; padding: 6px 10px; }
 .job-warn { color: var(--warn); font-size: 13px; margin-top: 4px; }
 .job-actions { display: flex; gap: 10px; margin-top: 16px; }
 
-/* ---------- Comptes ---------- */
+/* ---------- Accounts ---------- */
 .intro { max-width: 760px; margin-top: 0; }
 .accounts { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 20px; }
 .acc-head { display: flex; align-items: center; gap: 10px; }

@@ -1,4 +1,4 @@
-"""Publication TikTok via la Content Posting API (Login Kit « Desktop » avec PKCE)."""
+"""TikTok publishing via the Content Posting API (Login Kit "Desktop" with PKCE)."""
 import hashlib
 import secrets
 import time
@@ -21,12 +21,12 @@ def _check(r: requests.Response) -> dict:
         data = r.json()
     except ValueError:
         r.raise_for_status()
-        raise RuntimeError(f"Réponse inattendue de TikTok : {r.text[:300]}")
+        raise RuntimeError(f"Unexpected response from TikTok: {r.text[:300]}")
     err = data.get("error")
     if isinstance(err, dict) and err.get("code") not in (None, "ok"):
-        raise RuntimeError(f"TikTok : {err.get('message') or err.get('code')}")
-    if isinstance(err, str):  # format des erreurs OAuth
-        raise RuntimeError(f"TikTok : {data.get('error_description') or err}")
+        raise RuntimeError(f"TikTok: {err.get('message') or err.get('code')}")
+    if isinstance(err, str):  # OAuth error format
+        raise RuntimeError(f"TikTok: {data.get('error_description') or err}")
     r.raise_for_status()
     return data
 
@@ -42,14 +42,14 @@ def new_verifier() -> str:
 def auth_url(state: str, verifier: str) -> str:
     acc = store.load("tiktok")
     if not acc.get("client_key"):
-        raise ValueError("Renseigne d'abord le Client key et le Client secret de ton app TikTok.")
+        raise ValueError("Enter your TikTok app's Client key and Client secret first.")
     return AUTH_URL + "?" + urlencode({
         "client_key": acc["client_key"],
         "scope": SCOPES,
         "response_type": "code",
         "redirect_uri": REDIRECT_URI,
         "state": state,
-        # Particularité TikTok (Desktop) : le challenge PKCE est le SHA-256 encodé en hexadécimal.
+        # TikTok quirk (Desktop): the PKCE challenge is the hex-encoded SHA-256.
         "code_challenge": hashlib.sha256(verifier.encode()).hexdigest(),
         "code_challenge_method": "S256",
     })
@@ -91,11 +91,11 @@ def access_token() -> str:
     acc = store.load("tiktok")
     tok = acc.get("token")
     if not tok:
-        raise RuntimeError("TikTok n'est pas connecté.")
+        raise RuntimeError("TikTok is not connected.")
     if tok["expires_at"] - 300 > time.time():
         return tok["access_token"]
     if not tok.get("refresh_token") or tok.get("refresh_expires_at", 0) < time.time():
-        raise RuntimeError("La connexion TikTok a expiré : reconnecte ton compte dans l'onglet Comptes.")
+        raise RuntimeError("Your TikTok login has expired: reconnect your account in the Accounts tab.")
     data = _check(requests.post(f"{API}/oauth/token/", data={
         "client_key": acc["client_key"],
         "client_secret": acc["client_secret"],
@@ -136,7 +136,7 @@ def publish(path, *, caption, cover_ms, privacy, mode, disable_comment, disable_
     token = access_token()
     size = path.stat().st_size
 
-    # Règles TikTok : morceaux de 5 à 64 Mo, le dernier absorbe le reste (128 Mo max).
+    # TikTok rules: chunks of 5 to 64 MB, the last one absorbs the remainder (128 MB max).
     if size <= 64 * MB:
         chunk_size, count = size, 1
     else:
@@ -145,7 +145,7 @@ def publish(path, *, caption, cover_ms, privacy, mode, disable_comment, disable_
 
     source_info = {"source": "FILE_UPLOAD", "video_size": size, "chunk_size": chunk_size, "total_chunk_count": count}
 
-    report("Préparation de l'envoi…", 0.0)
+    report("Preparing upload…", 0.0)
     if mode == "draft":
         init = _check(requests.post(f"{API}/post/publish/inbox/video/init/", headers=_headers(token),
                                     json={"source_info": source_info}, timeout=60))
@@ -153,7 +153,7 @@ def publish(path, *, caption, cover_ms, privacy, mode, disable_comment, disable_
         info = creator_info()
         options = info.get("privacy_level_options") or []
         if options and privacy not in options:
-            raise RuntimeError(f"Visibilité « {privacy} » non autorisée pour ce compte (possibles : {', '.join(options)}).")
+            raise RuntimeError(f"Privacy \"{privacy}\" is not allowed for this account (allowed: {', '.join(options)}).")
         post_info = {
             "title": caption[:2200],
             "privacy_level": privacy,
@@ -182,11 +182,11 @@ def publish(path, *, caption, cover_ms, privacy, mode, disable_comment, disable_
                 if r.status_code in (200, 201, 206):
                     break
                 if r.status_code < 500 or attempt == 2:
-                    raise RuntimeError(f"TikTok a refusé l'envoi (HTTP {r.status_code}) : {r.text[:300]}")
+                    raise RuntimeError(f"TikTok rejected the upload (HTTP {r.status_code}): {r.text[:300]}")
                 time.sleep(3)
-            report("Envoi de la vidéo…", (end + 1) / size * 0.9)
+            report("Uploading video…", (end + 1) / size * 0.9)
 
-    report("Traitement par TikTok…", 0.92)
+    report("TikTok is processing…", 0.92)
     deadline = time.time() + 20 * 60
     while time.time() < deadline:
         st = _check(requests.post(f"{API}/post/publish/status/fetch/", headers=_headers(access_token()),
@@ -196,13 +196,13 @@ def publish(path, *, caption, cover_ms, privacy, mode, disable_comment, disable_
             name = (store.load("tiktok").get("account") or {}).get("name", "")
             warning = None
             if privacy == "SELF_ONLY":
-                warning = "Publiée en « Moi uniquement » (privé). Tant que ton app TikTok n'est pas auditée, c'est la seule option."
+                warning = "Published as \"Only me\" (private). Until your TikTok app is audited, this is the only option."
             return {"url": None, "warning": warning,
-                    "message": f"Publiée sur le compte {name}" if name else "Publiée !"}
+                    "message": f"Published on account {name}" if name else "Published!"}
         if s == "SEND_TO_USER_INBOX":
             return {"url": None, "warning": None,
-                    "message": "Vidéo envoyée dans tes brouillons TikTok : ouvre l'app TikTok (notifications) pour finaliser la publication."}
+                    "message": "Video sent to your TikTok drafts: open the TikTok app (notifications) to finish posting."}
         if s == "FAILED":
-            raise RuntimeError(f"TikTok a refusé la vidéo : {st.get('fail_reason', 'raison inconnue')}")
+            raise RuntimeError(f"TikTok rejected the video: {st.get('fail_reason', 'unknown reason')}")
         time.sleep(5)
-    return {"url": None, "warning": "TikTok traite encore la vidéo : vérifie ton profil dans quelques minutes.", "message": None}
+    return {"url": None, "warning": "TikTok is still processing the video: check your profile in a few minutes.", "message": None}

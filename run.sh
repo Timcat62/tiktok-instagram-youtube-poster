@@ -1,10 +1,10 @@
 #!/usr/bin/env sh
-# Lance Social Poster sur macOS / Linux.
+# Starts Social Poster on macOS / Linux.
 set -e
 cd "$(dirname "$0")"
 
 if [ ! -x .venv/bin/python ]; then
-  echo "Première installation, ça peut prendre une minute..."
+  echo "First-time setup, this may take a minute..."
   python3 -m venv .venv
 fi
 

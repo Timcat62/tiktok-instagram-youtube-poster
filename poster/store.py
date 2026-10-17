@@ -1,4 +1,4 @@
-"""Stockage local des réglages et des jetons de connexion (dossier data/, jamais versionné)."""
+"""Local storage for settings and login tokens (data/ folder, never committed)."""
 import json
 import os
 import threading
@@ -22,7 +22,7 @@ for _d in (UPLOADS, ACCOUNTS):
 
 def _path(platform: str) -> Path:
     if platform not in PLATFORMS:
-        raise ValueError(f"Plateforme inconnue : {platform}")
+        raise ValueError(f"Unknown platform: {platform}")
     return ACCOUNTS / f"{platform}.json"
 
 

@@ -1,4 +1,4 @@
-"""Gestion des vidéos importées (un dossier par vidéo dans data/uploads)."""
+"""Imported video management (one folder per video in data/uploads)."""
 import json
 import re
 import shutil
@@ -14,10 +14,10 @@ _ID_RE = re.compile(r"^[0-9a-f]{32}$")
 
 def video_dir(video_id: str) -> Path:
     if not _ID_RE.match(video_id or ""):
-        raise ValueError("Identifiant de vidéo invalide")
+        raise ValueError("Invalid video id")
     d = store.UPLOADS / video_id
     if not d.is_dir():
-        raise FileNotFoundError("Vidéo introuvable (elle a peut-être été supprimée).")
+        raise FileNotFoundError("Video not found (it may have been deleted).")
     return d
 
 
@@ -33,7 +33,7 @@ def load_meta(video_id: str) -> dict:
 def save_upload(file_storage) -> dict:
     ext = Path(file_storage.filename or "").suffix.lower()
     if ext not in ALLOWED_EXT:
-        raise ValueError(f"Format non pris en charge ({ext or 'inconnu'}). Formats acceptés : {', '.join(sorted(ALLOWED_EXT))}")
+        raise ValueError(f"Unsupported format ({ext or 'unknown'}). Accepted formats: {', '.join(sorted(ALLOWED_EXT))}")
     video_id = uuid.uuid4().hex
     d = store.UPLOADS / video_id
     d.mkdir(parents=True)
@@ -50,7 +50,7 @@ def save_upload(file_storage) -> dict:
 
 
 def cleanup(max_age_days: int = 7) -> None:
-    """Supprime les vidéos importées depuis plus de max_age_days jours."""
+    """Deletes videos imported more than max_age_days days ago."""
     limit = time.time() - max_age_days * 86400
     for d in store.UPLOADS.iterdir():
         if d.is_dir() and d.stat().st_mtime < limit:
