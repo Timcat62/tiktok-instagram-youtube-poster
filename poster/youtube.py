@@ -68,6 +68,16 @@ def _auth_worker(client_config: dict) -> None:
             account={"id": items[0]["id"], "name": items[0]["snippet"]["title"]},
         )
         auth_status["error"] = None
+    except HttpError as e:
+        if "accessNotConfigured" in str(e) or "has not been used" in str(e):
+            auth_status["error"] = (
+                "YouTube Data API v3 is not enabled in this Google Cloud project. Open "
+                "https://console.cloud.google.com/apis/library/youtube.googleapis.com, check that the "
+                "project selected at the top is the one your client_secret.json comes from, click Enable, "
+                "wait 2-5 minutes, then click Connect again."
+            )
+        else:
+            auth_status["error"] = getattr(e, "reason", None) or str(e)
     except Exception as e:  # noqa: BLE001 - shown as-is in the UI
         auth_status["error"] = str(e) or e.__class__.__name__
     finally:
