@@ -386,6 +386,7 @@ function lazyImage(img, spinner) {
 }
 const loadCover = lazyImage($("#cover-preview"), $("#cover-loading"));
 const loadShort = lazyImage($("#short-preview"));
+const loadCoverCrop = lazyImage($("#cover-crop-preview"));
 
 function setCover(t) {
   const v = state.video;
@@ -394,7 +395,10 @@ function setCover(t) {
   $("#cover-slider").value = t;
   $("#cover-time").textContent = fmtTime(t);
   loadCover(frameUrl(t, 720));
-  if (v.orientation === "horizontal") loadShort(frameUrl(t, 360, verticalMode()));
+  if (v.orientation === "horizontal") {
+    loadShort(frameUrl(t, 360, verticalMode()));
+    loadCoverCrop(frameUrl(t, 360, "crop"));
+  }
   $$("#filmstrip img").forEach((img) => img.classList.toggle("active", Math.abs(+img.dataset.t - t) < 0.001));
 }
 

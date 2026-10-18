@@ -100,8 +100,8 @@ def _prepare(job, opts):
 
     cover_t = max(0.0, min(float(opts.get("cover_t", 0)), max(meta["duration"] - 0.05, 0)))
     cover_path = folder / "cover.jpg"
-    cover_src = files.get("youtube", src)
-    cover_path.write_bytes(video.extract_frame(cover_src, cover_t, width=1280 if cover_src == src and horizontal else 1080))
+    # Profiles show covers in portrait: a horizontal frame is center-cropped to 9:16 (no black bars).
+    cover_path.write_bytes(video.extract_frame(src, cover_t, width=1080, mode="crop" if horizontal else None))
 
     return files, meta, cover_t, cover_path
 
@@ -122,7 +122,8 @@ def _publish_one(job, platform, file, opts, meta, cover_t, cover_path):
                 cover_path=cover_path, is_short=is_short, report=report,
             )
         elif platform == "instagram":
-            res = instagram.publish(file, caption=caption, thumb_offset_ms=cover_t * 1000, report=report)
+            res = instagram.publish(file, caption=caption, thumb_offset_ms=cover_t * 1000,
+                                  cover_path=cover_path, report=report)
         elif platform == "tiktok":
             t = opts.get("tiktok", {})
             res = tiktok.publish(

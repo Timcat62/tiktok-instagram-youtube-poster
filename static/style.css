@@ -154,8 +154,10 @@ select { width: auto; padding: 6px 10px; }
   background: var(--surface-2); cursor: pointer; font-size: 14px;
 }
 .mode input:checked + span { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
-.short-preview-wrap { display: flex; justify-content: center; background: var(--surface-2); border-radius: 10px; padding: 10px; }
-.short-preview-wrap img { height: 260px; aspect-ratio: 9 / 16; object-fit: cover; border-radius: 8px; background: #000; }
+.short-preview-wrap { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; background: var(--surface-2); border-radius: 10px; padding: 10px; }
+.short-preview-wrap figure { margin: 0; text-align: center; }
+.short-preview-wrap figcaption { font-size: 12px; color: var(--muted); margin-top: 6px; }
+.short-preview-wrap img { display: block; height: 260px; aspect-ratio: 9 / 16; object-fit: cover; border-radius: 8px; background: #000; }
 
 .alert { border-radius: 10px; padding: 10px 12px; margin-top: 14px; font-size: 14px; }
 .alert.warn { background: var(--warn-bg); color: var(--warn); }

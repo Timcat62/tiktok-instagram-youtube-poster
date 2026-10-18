@@ -73,21 +73,34 @@ def cloudflared_exe(report=None) -> str:
     return str(exe)
 
 
+_MIMETYPES = {".mp4": "video/mp4", ".mov": "video/quicktime", ".jpg": "image/jpeg", ".jpeg": "image/jpeg"}
+
+
 @contextmanager
 def public_url(path: Path, report=None, timeout: float = 90):
     """Context manager yielding a public https URL that serves `path` until the block exits."""
+    with public_urls({"video": path}, report, timeout) as urls:
+        yield urls["video"]
+
+
+@contextmanager
+def public_urls(files: dict[str, Path], report=None, timeout: float = 90):
+    """Like public_url, for several files: yields {name: url}. Only these files are served."""
     try:
         exe = cloudflared_exe(report)
     except Exception as e:  # noqa: BLE001 - download/network problem
         raise TunnelError(f"Could not get the Cloudflare tunnel tool ({e}).")
     token = secrets.token_urlsafe(24)
-    filename = "video" + path.suffix.lower()
+    served = {name + p.suffix.lower(): p for name, p in files.items()}
 
     app = Flask("poster-file-share")
 
-    @app.get(f"/{token}/{filename}")
-    def _serve():
-        return send_file(path, mimetype="video/mp4", conditional=True)
+    @app.get(f"/{token}/<filename>")
+    def _serve(filename):
+        p = served.get(filename)
+        if p is None:
+            return "", 404
+        return send_file(p, mimetype=_MIMETYPES.get(p.suffix.lower(), "application/octet-stream"), conditional=True)
 
     @app.errorhandler(404)
     def _nothing(_e):
@@ -106,9 +119,9 @@ def public_url(path: Path, report=None, timeout: float = 90):
         if report:
             report("Opening a temporary public link for Instagram…", 0.0)
         base = _wait_for_url(proc, timeout)
-        url = f"{base}/{token}/{filename}"
-        _wait_until_reachable(url, timeout)
-        yield url
+        urls = {name: f"{base}/{token}/{name}{p.suffix.lower()}" for name, p in files.items()}
+        _wait_until_reachable(next(iter(urls.values())), timeout)
+        yield urls
     finally:
         proc.terminate()
         try:

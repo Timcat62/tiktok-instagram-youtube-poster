@@ -62,8 +62,16 @@
               <label class="mode"><input type="radio" name="vmode" value="crop"><span>Center crop</span></label>
             </div>
             <div class="short-preview-wrap">
-              <img id="short-preview" alt="Short preview">
+              <figure>
+                <img id="short-preview" alt="Short preview">
+                <figcaption>YouTube Short</figcaption>
+              </figure>
+              <figure>
+                <img id="cover-crop-preview" alt="Profile cover preview">
+                <figcaption>Profile cover (YouTube &amp; Instagram)</figcaption>
+              </figure>
             </div>
+            <p class="muted small">The cover is center-cropped to 9:16 so your profiles show no black bars. TikTok only accepts a frame of the video itself: to avoid black bars on TikTok too, tick the option below (with <b>Center crop</b> for a full-screen look).</p>
             <label class="check"><input type="checkbox" id="vertical-all"> Also use this vertical format for Instagram and TikTok</label>
           </div>
           <div id="duration-warning" class="alert warn hidden"></div>

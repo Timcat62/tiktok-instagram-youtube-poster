@@ -180,19 +180,26 @@ def _wait_processing(cid: str, token: str, report, timeout: float = 20 * 60, stu
         time.sleep(5)
 
 
-def _publish_from_url(path, ig, token, caption, thumb_offset_ms, report) -> str:
-    """Main method: Instagram downloads the video from a temporary public link."""
-    with tunnel.public_url(path, report=report, timeout=180) as url:
+def _publish_from_url(path, ig, token, caption, thumb_offset_ms, cover_path, report) -> str:
+    """Main method: Instagram downloads the video (and the cover image) from a temporary public link."""
+    files = {"video": path}
+    if cover_path:
+        files["cover"] = cover_path
+    with tunnel.public_urls(files, report=report, timeout=180) as urls:
         report("Creating Reel…", 0.5)
-        cid = _check(requests.post(f"{GRAPH}/{ig}/media", data={
+        data = {
             "media_type": "REELS",
-            "video_url": url,
+            "video_url": urls["video"],
             "caption": caption,
             "thumb_offset": int(thumb_offset_ms),
             "share_to_feed": "true",
             "access_token": token,
-        }, timeout=60))["id"]
-        # Keep the link open until Instagram has finished downloading and processing the file.
+        }
+        if "cover" in urls:
+            # A custom 9:16 cover image overrides thumb_offset (no black bars on the profile grid).
+            data["cover_url"] = urls["cover"]
+        cid = _check(requests.post(f"{GRAPH}/{ig}/media", data=data, timeout=60))["id"]
+        # Keep the link open until Instagram has finished downloading and processing the files.
         _wait_processing(cid, token, report)
     return cid
 
@@ -222,14 +229,14 @@ def _publish_resumable(path, ig, token, caption, thumb_offset_ms, report) -> str
     return cid
 
 
-def publish(path, *, caption, thumb_offset_ms, report) -> dict:
+def publish(path, *, caption, thumb_offset_ms, cover_path=None, report) -> dict:
     acc = store.load("instagram")
     token, ig = acc.get("token"), (acc.get("account") or {}).get("id")
     if not (token and ig):
         raise RuntimeError("Instagram is not connected.")
 
     try:
-        cid = _publish_from_url(path, ig, token, caption, thumb_offset_ms, report)
+        cid = _publish_from_url(path, ig, token, caption, thumb_offset_ms, cover_path, report)
     except tunnel.TunnelError as e:
         report(f"{e} Trying direct upload…", 0.0)
         cid = _publish_resumable(path, ig, token, caption, thumb_offset_ms, report)

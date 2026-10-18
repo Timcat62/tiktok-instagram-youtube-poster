@@ -373,7 +373,8 @@ Your draft (description, hashtags) and your choices (ticked platforms, YouTube v
 | | YouTube | Instagram | TikTok |
 |---|---|---|---|
 | API | YouTube Data API v3 (`videos.insert`) | Graph API (Reels from a `video_url`, see below) | Content Posting API (Direct Post or Inbox) |
-| Cover | Frame extracted and uploaded as the thumbnail (`thumbnails.set`) | `thumb_offset` (frame position in ms) | `video_cover_timestamp_ms` |
+| Cover | Chosen frame uploaded as the thumbnail (`thumbnails.set`) | Chosen frame uploaded as a custom cover (`cover_url`) | `video_cover_timestamp_ms` (a frame of the video itself) |
+| Cover of a horizontal video | Center-cropped to 9:16 (no black bars on your profile) | Center-cropped to 9:16 (no black bars on your profile) | Can't be cropped by the API: tick *Also use this vertical format* (with *Center crop*) to avoid black bars |
 | Horizontal video | Converted to 1080×1920 → Short | As is (or 9:16 if the option is ticked) | As is (or 9:16 if the option is ticked) |
 | Hashtags | In the description + as tags | In the caption | In the caption |
 
